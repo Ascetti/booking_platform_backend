@@ -1,12 +1,11 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Api\V1\Amenity;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
-class UpdateAmenityRequest extends FormRequest
+class StoreAmenityRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,11 +22,15 @@ class UpdateAmenityRequest extends FormRequest
      */
     public function rules(): array
     {
-        $amenityId = $this->route('amenity')->id;
-
         return [
-            'name' => ['sometimes', 'string', 'max:255', Rule::unique('amenities', 'name')->ignore($amenityId)],
-            'icon_src' => ['sometimes', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'unique:amenities,name'],
+            'icon_src' => ['required', 'string', 'max:255'],
         ];
     }
+
+    // public function messages() {
+    //     return [
+    //         'name.required' => 'Требуется корректное название' 
+    //     ];
+    // }
 }

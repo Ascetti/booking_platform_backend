@@ -1,20 +1,26 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Http\Requests\StoreUserRequest;
-use App\Http\Requests\UpdateUserRequest;
-use App\Http\Resources\UserResource;
+use App\Http\Requests\Api\V1\User\StoreUserRequest;
+use App\Http\Requests\Api\V1\User\UpdateUserRequest;
+use App\Http\Resources\Api\V1\UserResource;
+use App\Services\IAM\UserService;
 
 class UserController extends Controller
 {
+    public function __construct(
+        protected UserService $userService
+    ) {}
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $users = User::all();
+        $users = User::with('roles')->get();
         return UserResource::collection($users);
     }
 
@@ -24,8 +30,8 @@ class UserController extends Controller
     public function store(StoreUserRequest $request)
     {
         $data = $request->validated();
-        $user = User::create($data);
-        return new UserResource($user);
+        $user = $this->userService->storeUser($data);
+        return new UserResource($user->load('roles'));
     }
 
     /**
@@ -33,7 +39,7 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
-        return new UserResource($user);
+        return new UserResource($user->load('roles'));
     }
 
     /**
@@ -42,11 +48,8 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user)
     {
         $data = $request->validated();
-        if (empty($data['password'])) {
-            unset($data['password']);
-        }
-        $user->update($data);
-        return new UserResource($user);
+        $user = $this->userService->updateUser($user, $data);
+        return new UserResource($user->load('roles'));
     }
 
     /**

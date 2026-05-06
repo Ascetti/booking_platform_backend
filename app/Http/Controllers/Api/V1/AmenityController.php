@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Controllers\Controller;
 use App\Models\Amenity;
-use App\Http\Requests\StoreAmenityRequest;
-use App\Http\Requests\UpdateAmenityRequest;
-use App\Http\Resources\AmenityResource;
+use App\Http\Resources\Api\V1\AmenityResource;
+use App\Http\Requests\Api\V1\Amenity\StoreAmenityRequest;
+use App\Http\Requests\Api\V1\Amenity\UpdateAmenityRequest;
 
 class AmenityController extends Controller
 {

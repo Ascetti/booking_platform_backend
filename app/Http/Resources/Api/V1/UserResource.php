@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Resources;
+namespace App\Http\Resources\Api\V1;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -14,11 +14,18 @@ class UserResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $role = $this->roles->first();
+
         return [
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
             'phone' => $this->phone,
+            'roles' => $this->roles->map(fn($role) => [
+                'id' => $role->id,
+                'name' => $role->name,
+                'hotel_id' => $role->pivot->hotel_id,
+            ]),
         ];
     }
 }

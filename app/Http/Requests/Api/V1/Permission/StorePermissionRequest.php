@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Api\V1\Permission;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreAmenityRequest extends FormRequest
+class StorePermissionRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,14 +23,7 @@ class StoreAmenityRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255', 'unique:amenities,name'],
-            'icon_src' => ['required', 'string', 'max:255'],
-        ];
-    }
-
-    public function messages() {
-        return [
-            'name.required' => 'Требуется корректное название' 
+            'name' => ['required', 'string', 'max:255', 'unique:permissions,name']
         ];
     }
 }
