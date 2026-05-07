@@ -16,6 +16,17 @@ enum PermissionEnum: string
 
     case ROLES_MANAGE = 'roles.manage';
     case PERMISSIONS_MANAGE = 'permissions.manage';
+    
+    case AMENITIES_VIEW = 'amenities.view';
+    case AMENITIES_MANAGE = 'amenities.manage';
+
+    case CATEGORIES_VIEW = 'categories.view';
+    case CATEGORIES_MANAGE = 'categories.manage';
+
+    case ROOMS_VIEW = 'rooms.view';
+    case ROOMS_MANAGE = 'rooms.manage';
+
+    case MEDIA_MANAGE = 'media.manage';
 
     // case STAFF_MANAGE = 'staff.manage';
 }

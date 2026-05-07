@@ -4,8 +4,11 @@ use App\Http\Controllers\Auth\AuthenticatedApiController;
 use App\Http\Controllers\Auth\RegisteredUserApiController;
 use App\Http\Controllers\Api\V1\AmenityController;
 use App\Http\Controllers\Api\V1\HotelController;
+use App\Http\Controllers\Api\V1\MediaController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\RoomCategoryController;
+use App\Http\Controllers\Api\V1\RoomController;
 use App\Http\Controllers\Api\V1\StaffController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Models\Hotel;
@@ -27,11 +30,15 @@ Route::post('/logout', [AuthenticatedApiController::class, 'destroy'])
 Route::prefix('v1')->group(function () {});
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::apiResource('amenities', AmenityController::class);
-    Route::apiResource('users', UserController::class);
-    Route::apiResource('roles', RoleController::class);
     Route::apiResource('permissions', PermissionController::class);
-    Route::apiResource('hotels', HotelController::class)->middleware('can:viewAny,' . Hotel::class);
+    Route::apiResource('roles', RoleController::class);
+    Route::apiResource('users', UserController::class);
+    Route::apiResource('hotels', HotelController::class);
+
+    Route::apiResource('amenities', AmenityController::class);
+    Route::apiResource('hotels.room-categories', RoomCategoryController::class)->shallow()->scoped();
+    Route::apiResource('hotels.rooms', RoomController::class)->shallow()->scoped();
+    Route::apiResource('hotels.media', MediaController::class)->only(['store', 'destroy'])->shallow()->scoped();
 
     // Route::post('staff', [StaffController::class, 'store']);
     // Route::prefix('hotels/{hotel}')->group(function () {

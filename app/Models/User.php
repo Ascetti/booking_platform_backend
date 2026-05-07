@@ -66,21 +66,21 @@ class User extends Authenticatable
             ->exists();
     }
 
-    public function hasPermission(string $permission, ?int $hotelId = null): bool
-    {
-        return $this->roles()
-            ->when($hotelId, function ($query) use ($hotelId) {
-                $query->wherePivot('hotel_id', $hotelId);
-            })
-            ->whereHas('permissions', function ($query) use ($permission) {
-                $query->where('name', $permission);
-            })
-            ->exists();
-    }
+    // public function hasPermission(string $permission, ?int $hotelId = null): bool
+    // {
+    //     return $this->roles()
+    //         ->when($hotelId, function ($query) use ($hotelId) {
+    //             $query->wherePivot('hotel_id', $hotelId);
+    //         })
+    //         ->whereHas('permissions', function ($query) use ($permission) {
+    //             $query->where('name', $permission);
+    //         })
+    //         ->exists();
+    // }
 
     public function hasGlobalPermission(PermissionEnum $permission): bool {
         return $this->roles()
-            ->wherePivot('hotel_id', null)
+            // ->wherePivot('hotel_id', null)
             ->whereHas('permissions', fn (Builder $query) => $query->where('name', $permission->value))
             ->exists();
     }

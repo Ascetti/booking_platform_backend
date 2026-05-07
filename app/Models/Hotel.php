@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Override;
 
 class Hotel extends Model
@@ -38,6 +39,14 @@ class Hotel extends Model
         return $this->belongsToMany(User::class, 'role_user')
             ->withPivot('role_id')
             ->withTimestamps();
+    }
+
+    public function categories(): HasMany {
+        return $this->hasMany(RoomCategory::class);
+    }
+
+    public function rooms(): HasMany {
+        return $this->hasMany(Room::class);
     }
 
     public function scopeAccessibleBy(Builder $query, User $user): Builder

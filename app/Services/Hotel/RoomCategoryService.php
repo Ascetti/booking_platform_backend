@@ -1,0 +1,42 @@
+<?php
+
+namespace App\Services\Hotel;
+
+use App\Models\Hotel;
+use App\Models\RoomCategory;
+use Illuminate\Support\Facades\DB;
+
+class RoomCategoryService
+{
+
+    public function createCategory(Hotel $hotel, array $data): RoomCategory
+    {
+        return DB::transaction(function () use ($hotel, $data) {
+            $category = $hotel->categories()->create($data);
+
+            if (isset($data['amenities'])) {
+                $category->amenities()->sync($data['amenities']);
+            }
+
+            return $category->load('amenities');
+        });
+    }
+
+    public function updateCategory(RoomCategory $category, array $data): RoomCategory
+    {
+        return DB::transaction(function () use ($category, $data) {
+            $category->update($data);
+
+            if (array_key_exists('amenities', $data)) {
+                $category->amenities()->sync($data['amenities'] ?? []);
+            }
+
+            return $category->load(['amenities', 'media']);
+        });
+    }
+
+    public function deleteCategory(RoomCategory $category): bool
+    {
+        return $category->delete();
+    }
+}

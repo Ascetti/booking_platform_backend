@@ -7,14 +7,20 @@ use App\Models\Amenity;
 use App\Http\Resources\Api\V1\AmenityResource;
 use App\Http\Requests\Api\V1\Amenity\StoreAmenityRequest;
 use App\Http\Requests\Api\V1\Amenity\UpdateAmenityRequest;
+use App\Services\Hotel\AmenityService;
+use Illuminate\Support\Facades\Gate;
 
 class AmenityController extends Controller
 {
+    public function __construct(
+        protected AmenityService $amenityService
+    ) {}
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
+        Gate::authorize('viewAny', Amenity::class);
         $amenities = Amenity::all();
         return AmenityResource::collection($amenities);
     }
@@ -24,8 +30,9 @@ class AmenityController extends Controller
      */
     public function store(StoreAmenityRequest $request)
     {
+        Gate::authorize('create', Amenity::class);
         $data = $request->validated();
-        $amenity = Amenity::create($data);
+        $amenity = $this->amenityService->createAmenity($data);
         return new AmenityResource($amenity);
     }
 
@@ -34,6 +41,7 @@ class AmenityController extends Controller
      */
     public function show(Amenity $amenity)
     {
+        Gate::authorize('view', $amenity);
         return new AmenityResource($amenity);
     }
 
@@ -42,8 +50,9 @@ class AmenityController extends Controller
      */
     public function update(UpdateAmenityRequest $request, Amenity $amenity)
     {
+        Gate::authorize('update', $amenity);   
         $data = $request->validated();
-        $amenity->update($data);
+        $amenity = $this->amenityService->updateAmenity($amenity, $data);
         return new AmenityResource($amenity);
     }
 
@@ -52,7 +61,8 @@ class AmenityController extends Controller
      */
     public function destroy(Amenity $amenity)
     {
-        $amenity->delete();
+        Gate::authorize('delete', $amenity);
+        $this->amenityService->deleteAmenity($amenity);
         return response()->noContent();
     }
 }

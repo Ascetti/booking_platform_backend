@@ -34,13 +34,13 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             UserSeeder::class,
-            HotelSeeder::class
+            AmenitySeeder::class,
+            HotelSeeder::class,
         ]);
 
         $platformAdminRole = Role::where('name', RoleEnum::PLATFORM_ADMIN->value)->first();
         $hotelAdminRole = Role::where('name', RoleEnum::HOTEL_ADMIN->value)->first();
 
-        // Создаем отели
         $hotelA = Hotel::where('name', 'Alfa Hotel')->first();
         $hotelB = Hotel::where('name', 'Beta Hotel')->first();
         $hotelC = Hotel::where('name', 'Gamma Hotel')->first();
