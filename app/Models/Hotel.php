@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Override;
 
 class Hotel extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -47,6 +48,10 @@ class Hotel extends Model
 
     public function rooms(): HasMany {
         return $this->hasMany(Room::class);
+    }
+
+    public function plans(): HasMany {
+        return $this->hasMany(RatePlan::class);
     }
 
     public function scopeAccessibleBy(Builder $query, User $user): Builder

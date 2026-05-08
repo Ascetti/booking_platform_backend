@@ -67,7 +67,7 @@ class HotelController extends Controller
     public function destroy(Hotel $hotel)
     {
         Gate::authorize('delete', $hotel);
-        $hotel->delete();
+        $this->hotelService->deleteHotel($hotel);
         return response()->noContent();
     }
 }

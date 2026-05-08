@@ -3,6 +3,8 @@
 namespace App\Services\Hotel;
 
 use App\Models\Hotel;
+use App\Models\RateOverride;
+use App\Models\RatePrice;
 use App\Models\RoomCategory;
 use Illuminate\Support\Facades\DB;
 
@@ -37,6 +39,11 @@ class RoomCategoryService
 
     public function deleteCategory(RoomCategory $category): bool
     {
-        return $category->delete();
+        return DB::transaction(function () use ($category) {
+            RatePrice::where('room_category_id', $category->id)->delete();
+            RateOverride::where('room_category_id', $category->id)->delete();
+            $category->rooms()->delete();
+            return $category->delete();
+        });
     }
 }

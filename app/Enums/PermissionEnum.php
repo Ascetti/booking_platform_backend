@@ -28,5 +28,8 @@ enum PermissionEnum: string
 
     case MEDIA_MANAGE = 'media.manage';
 
+    case PLANS_VIEW = 'plans.view';
+    case PLANS_MANAGE = 'plans.manage';
+
     // case STAFF_MANAGE = 'staff.manage';
 }

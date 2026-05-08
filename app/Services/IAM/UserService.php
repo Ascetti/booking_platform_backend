@@ -44,4 +44,9 @@ class UserService
         $user->update($data);
         return $user;
     }
+
+    public function deleteUser(User $user): bool
+    {
+        return $user->delete();
+    }
 }

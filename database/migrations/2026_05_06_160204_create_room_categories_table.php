@@ -21,6 +21,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('extra_capacity')->default(1);
             $table->string('bedding_options');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

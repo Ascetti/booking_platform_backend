@@ -6,6 +6,9 @@ use App\Http\Controllers\Api\V1\AmenityController;
 use App\Http\Controllers\Api\V1\HotelController;
 use App\Http\Controllers\Api\V1\MediaController;
 use App\Http\Controllers\Api\V1\PermissionController;
+use App\Http\Controllers\Api\V1\PricingController;
+use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\RatePlanController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\RoomCategoryController;
 use App\Http\Controllers\Api\V1\RoomController;
@@ -40,13 +43,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('hotels.rooms', RoomController::class)->shallow()->scoped();
     Route::apiResource('hotels.media', MediaController::class)->only(['store', 'destroy'])->shallow()->scoped();
 
+    Route::apiResource('hotels.rate-plans', RatePlanController::class)->shallow()->scoped();
+    Route::prefix('rate-plans/{rate_plan}')->group(function () {
+        Route::get('pricing', [PricingController::class, 'index']);
+        Route::post('pricing', [PricingController::class, 'update']);
+    });
+
     // Route::post('staff', [StaffController::class, 'store']);
     // Route::prefix('hotels/{hotel}')->group(function () {
     //     Route::get('staff', [StaffController::class, 'index']);
     //     Route::put('staff/sync', [StaffController::class, 'sync']);
     //     Route::delete('staff/{user}', [StaffController::class, 'destroy']);
     // });
-
+    Route::get('profile', [ProfileController::class, 'show']);
+    Route::patch('profile', [ProfileController::class, 'update']);
     Route::get('/user', function (Request $request) {
         return $request->user();
     });

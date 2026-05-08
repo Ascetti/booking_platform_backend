@@ -8,6 +8,7 @@ use App\Http\Requests\Api\V1\User\StoreUserRequest;
 use App\Http\Requests\Api\V1\User\UpdateUserRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Services\IAM\UserService;
+use Illuminate\Support\Facades\Gate;
 
 class UserController extends Controller
 {
@@ -20,6 +21,7 @@ class UserController extends Controller
      */
     public function index()
     {
+        Gate::authorize('viewAny', User::class);
         $users = User::with('roles')->get();
         return UserResource::collection($users);
     }
@@ -29,6 +31,7 @@ class UserController extends Controller
      */
     public function store(StoreUserRequest $request)
     {
+        Gate::authorize('create', User::class);
         $data = $request->validated();
         $user = $this->userService->storeUser($data);
         return new UserResource($user->load('roles'));
@@ -39,6 +42,7 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
+        Gate::authorize('view', $user);
         return new UserResource($user->load('roles'));
     }
 
@@ -47,6 +51,7 @@ class UserController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user)
     {
+        Gate::authorize('update', $user);
         $data = $request->validated();
         $user = $this->userService->updateUser($user, $data);
         return new UserResource($user->load('roles'));
@@ -57,7 +62,8 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        $user->delete();
+        Gate::authorize('delete', $user);
+        $user = $this->userService->deleteUser($user);
         return response()->noContent();
     }
 }

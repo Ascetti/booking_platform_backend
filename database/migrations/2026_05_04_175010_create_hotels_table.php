@@ -23,6 +23,7 @@ return new class extends Migration
             $table->time('check_in_time')->default('14:00');
             $table->time('check_out_time')->default('12:00');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

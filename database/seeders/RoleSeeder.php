@@ -24,6 +24,7 @@ class RoleSeeder extends Seeder
 
         $hotelAdminPermissions = Permission::whereIn('name', [
             PermissionEnum::USERS_VIEW->value,
+            PermissionEnum::USERS_EDIT->value,
             PermissionEnum::HOTELS_VIEW->value,
             PermissionEnum::HOTELS_EDIT->value,
             PermissionEnum::AMENITIES_VIEW->value,
