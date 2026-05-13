@@ -33,15 +33,19 @@ class RoleSeeder extends Seeder
             PermissionEnum::ROOMS_VIEW->value,
             PermissionEnum::ROOMS_MANAGE->value,
             PermissionEnum::MEDIA_MANAGE->value,
+            PermissionEnum::PLANS_VIEW->value,
+            PermissionEnum::PLANS_MANAGE->value,
         ])->pluck('id')->toArray();
 
         $this->roleService->storeRole([
             'name' => RoleEnum::PLATFORM_ADMIN->value,
+            'slug' => RoleEnum::PLATFORM_ADMIN->value,
             'permissions' => $allPermissions
         ]);
 
         $this->roleService->storeRole([
             'name' => RoleEnum::HOTEL_ADMIN->value,
+            'slug' => RoleEnum::HOTEL_ADMIN->value,
             'permissions' => $hotelAdminPermissions
         ]);
     }

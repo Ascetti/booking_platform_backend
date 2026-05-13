@@ -8,7 +8,7 @@ use App\Models\RoomCategory;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
-class RoomCategoryPolicy
+class RoomCategoryPolicy extends BasePolicy
 {
     /**
      * Determine whether the user can view any models.

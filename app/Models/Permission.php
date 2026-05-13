@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Permission extends Model
 {
-    protected $fillable = ['name'];
+    protected $fillable = ['slug', 'name'];
 
     public function roles(): BelongsToMany {
         return $this->belongsToMany(Role::class, 'permission_role')

@@ -7,7 +7,7 @@ use App\Models\Hotel;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
-class HotelPolicy
+class HotelPolicy extends BasePolicy
 {
     /**
      * Determine whether the user can view any models.

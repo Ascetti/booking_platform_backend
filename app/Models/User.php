@@ -53,43 +53,73 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
-    public function isPlatformAdmin(): bool {
+    public function isPlatformAdmin(): bool
+    {
         return $this->roles()
-            ->where('name', RoleEnum::PLATFORM_ADMIN->value)
+            ->where('slug', RoleEnum::PLATFORM_ADMIN->value)
             ->wherePivot('hotel_id', null)
             ->exists();
     }
 
-    public function isHotelAdmin(?int $hotelId = null): bool {
+    public function isHotelAdmin(?int $hotelId = null): bool
+    {
         return $this->roles()
-            ->where('name', RoleEnum::HOTEL_ADMIN->value)
-            ->when($hotelId, fn (Builder $query) => $query->wherePivot('hotel_id', $hotelId))
+            ->where('slug', RoleEnum::HOTEL_ADMIN->value)
+            ->when($hotelId, fn(Builder $query) => $query->wherePivot('hotel_id', $hotelId))
             ->exists();
     }
 
-    // public function hasPermission(string $permission, ?int $hotelId = null): bool
-    // {
-    //     return $this->roles()
-    //         ->when($hotelId, function ($query) use ($hotelId) {
-    //             $query->wherePivot('hotel_id', $hotelId);
-    //         })
-    //         ->whereHas('permissions', function ($query) use ($permission) {
-    //             $query->where('name', $permission);
-    //         })
-    //         ->exists();
-    // }
+    public function isPlatformStaff(): bool
+    {
+        return $this->roles()->wherePivot('hotel_id', null)->exists();
+    }
 
-    public function hasGlobalPermission(PermissionEnum $permission): bool {
+    public function isHotelStaff(): bool
+    {
+        return $this->roles()->wherePivotNotNull('hotel_id')->exists();
+    }
+
+    public function belongsToHotel(Hotel|int $hotelId): bool
+    {
+        $id = $hotelId instanceof \App\Models\Hotel ? $hotelId->id : $hotelId;
+
         return $this->roles()
-            // ->wherePivot('hotel_id', null)
-            ->whereHas('permissions', fn (Builder $query) => $query->where('name', $permission->value))
+            ->wherePivot('hotel_id', $id)
             ->exists();
     }
 
-    public function hasHotelPermission(PermissionEnum $permission, int $hotelId): bool {
+    public function hasPermission(PermissionEnum $permission, ?int $hotelId = null): bool
+    {
+        return $this->roles()
+            ->when($hotelId, function ($query) use ($hotelId) {
+                $query->wherePivot('hotel_id', $hotelId);
+            }, function ($query) {
+                $query->wherePivot('hotel_id', null);
+            })
+            ->whereHas('permissions', function ($query) use ($permission) {
+                $query->where('slug', $permission);
+            })
+            ->exists();
+    }
+
+    public function hasGlobalPermission(PermissionEnum $permission): bool
+    {
+        return $this->roles()
+            ->whereHas('permissions', fn (Builder $query) => $query->where('slug', $permission->value))
+            ->exists();
+    }
+
+    public function hasHotelPermission(PermissionEnum $permission, int $hotelId): bool
+    {
         return $this->roles()
             ->wherePivot('hotel_id', $hotelId)
-            ->whereHas('permissions', fn (Builder $query) => $query->where('name', $permission->value))
+            ->whereHas('permissions', fn (Builder $query) => $query->where('slug', $permission->value))
+            ->exists();
+    }
+
+    public function hasRole(RoleEnum $role) {
+        return $this->roles()
+            ->where('slug', $role->value)
             ->exists();
     }
 }

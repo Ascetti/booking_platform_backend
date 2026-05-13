@@ -8,7 +8,7 @@ use App\Models\Media;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
-class MediaPolicy
+class MediaPolicy extends BasePolicy
 {
     /**
      * Determine whether the user can view any models.

@@ -6,14 +6,14 @@ use App\Enums\PermissionEnum;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
-class UserPolicy
+class UserPolicy extends BasePolicy
 {
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasGlobalPermission(PermissionEnum::USERS_VIEW);
+        return $user->isPlatformStaff() && $user->hasGlobalPermission(PermissionEnum::USERS_VIEW);
     }
 
     /**

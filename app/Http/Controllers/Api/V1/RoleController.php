@@ -9,6 +9,7 @@ use App\Http\Resources\Api\V1\RoleResource;
 use App\Models\Role;
 use App\Services\IAM\RoleService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use phpDocumentor\Reflection\Types\This;
 
 class RoleController extends Controller
@@ -22,6 +23,7 @@ class RoleController extends Controller
      */
     public function index()
     {
+        Gate::authorize('viewAny');
         $roles = Role::with('permissions')->get();
         return RoleResource::collection($roles);
     }
@@ -31,6 +33,7 @@ class RoleController extends Controller
      */
     public function store(StoreRoleRequest $request)
     {
+        Gate::authorize('create');
         $data = $request->validated();
         $role = $this->roleService->storeRole($data);
         return new RoleResource($role->load('permissions'));
@@ -41,6 +44,7 @@ class RoleController extends Controller
      */
     public function show(Role $role)
     {
+        Gate::authorize('view', $role);
         return new RoleResource($role->load('permissions'));
     }
 
@@ -49,6 +53,7 @@ class RoleController extends Controller
      */
     public function update(UpdateRoleRequest $request, Role $role)
     {
+        Gate::authorize('update', $role);
         $data = $request->validated();
         $role = $this->roleService->updateRole($role, $data);
         return new RoleResource($role->load('permissions'));
@@ -59,7 +64,8 @@ class RoleController extends Controller
      */
     public function destroy(Role $role)
     {
-        $role->delete();
+        Gate::authorize('delete', $role);
+        $this->roleService->deleteRole($role);
         return response()->noContent();
     }
 }

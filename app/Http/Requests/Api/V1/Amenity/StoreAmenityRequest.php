@@ -23,6 +23,7 @@ class StoreAmenityRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'slug' => ['required', 'string', 'max:255', 'unique:amenities,slug'],
             'name' => ['required', 'string', 'max:255', 'unique:amenities,name'],
             'icon_src' => ['required', 'string', 'max:255'],
         ];

@@ -59,4 +59,8 @@ class RatePlan extends Model
     {
         return $this->hasMany(RateOverride::class);
     }
+
+    public function bookings(): HasMany {
+        return $this->hasMany(Booking::class);
+    }
 }

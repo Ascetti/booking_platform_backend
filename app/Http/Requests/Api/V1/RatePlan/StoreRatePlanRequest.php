@@ -35,7 +35,7 @@ class StoreRatePlanRequest extends FormRequest
                     $query->where('hotel_id', $this->route('hotel')->id);
                 }),
             ],
-            'meal_plan' => ['required', new Enum(MealPlanEnum::class)],
+            'meal_plan' => ['required', Rule::enum(MealPlanEnum::class)],
             'modifier_percent' => ['nullable', 'integer', 'min:-100', 'max:1000'],
             'min_stay_days' => ['sometimes', 'integer', 'min:1'],
             'min_days_before_arrival' => ['nullable', 'integer', 'min:0'],

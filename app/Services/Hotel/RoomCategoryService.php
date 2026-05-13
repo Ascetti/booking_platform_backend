@@ -6,6 +6,7 @@ use App\Models\Hotel;
 use App\Models\RateOverride;
 use App\Models\RatePrice;
 use App\Models\RoomCategory;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 class RoomCategoryService
@@ -14,7 +15,7 @@ class RoomCategoryService
     public function createCategory(Hotel $hotel, array $data): RoomCategory
     {
         return DB::transaction(function () use ($hotel, $data) {
-            $category = $hotel->categories()->create($data);
+            $category = $hotel->categories()->create(Arr::except($data, ['amenities']));
 
             if (isset($data['amenities'])) {
                 $category->amenities()->sync($data['amenities']);
@@ -27,7 +28,7 @@ class RoomCategoryService
     public function updateCategory(RoomCategory $category, array $data): RoomCategory
     {
         return DB::transaction(function () use ($category, $data) {
-            $category->update($data);
+            $category->update(Arr::except($data, ['amenities']));
 
             if (array_key_exists('amenities', $data)) {
                 $category->amenities()->sync($data['amenities'] ?? []);

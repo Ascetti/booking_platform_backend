@@ -16,6 +16,7 @@ class AmenityResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'slug' => $this->slug,
             'name' => $this->name,
             'icon_src' => $this->icon_src,
         ];

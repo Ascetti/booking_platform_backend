@@ -19,12 +19,12 @@ class PricingController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request, RatePlan $ratePlan)
+    public function show(Request $request, RatePlan $ratePlan)
     {
         Gate::authorize('view', $ratePlan);
         $data = $request->validate([
             'start_date' => ['required', 'date', 'date_format:Y-m-d'],
-            'end_date'   => ['required', 'date', 'date_format:Y-m-d', 'after_or_equal:start_date'],
+            'end_date' => ['required', 'date', 'date_format:Y-m-d', 'after_or_equal:start_date'],
         ]);
         $pricingDrid = $this->pricingService->getPricingGrid(
             $ratePlan,

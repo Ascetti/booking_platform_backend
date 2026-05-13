@@ -7,7 +7,7 @@ use App\Models\Amenity;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
-class AmenityPolicy
+class AmenityPolicy extends BasePolicy
 {
     /**
      * Determine whether the user can view any models.

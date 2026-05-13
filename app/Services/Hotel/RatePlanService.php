@@ -7,6 +7,7 @@ use App\Models\RatePlan;
 use App\Models\RatePrice;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 class RatePlanService
@@ -15,7 +16,7 @@ class RatePlanService
     public function createRatePlan(Hotel $hotel, array $data): RatePlan
     {
         return DB::transaction(function () use ($hotel, $data) {
-            $ratePlan = $hotel->ratePlans()->create($data);
+            $ratePlan = $hotel->ratePlans()->create(Arr::except($data, ['base_prices']));
 
             if (!empty($data['base_prices'])) {
                 $this->syncBasePrices($ratePlan, $data['base_prices']);

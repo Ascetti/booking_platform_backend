@@ -51,4 +51,8 @@ class RoomCategory extends Model
     public function overrides(): HasMany {
         return $this->hasMany(RateOverride::class, 'room_category_id');
     }
+
+    public function bookings(): HasMany {
+        return $this->hasMany(Booking::class, 'room_category_id');
+    }
 }

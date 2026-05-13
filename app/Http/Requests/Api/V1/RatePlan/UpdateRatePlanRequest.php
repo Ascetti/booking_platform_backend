@@ -36,7 +36,7 @@ class UpdateRatePlanRequest extends FormRequest
                     ->where('hotel_id', $this->rate_plan->hotel_id)
                     ->whereNot('id', $this->rate_plan->id),
             ],
-            'meal_plan' => ['sometimes', new Enum(MealPlanEnum::class)],
+            'meal_plan' => ['sometimes', Rule::enum(MealPlanEnum::class)],
             'modifier_percent' => ['sometimes', 'nullable', 'integer'],
             'min_stay_days' => ['sometimes', 'integer', 'min:1'],
             'cancellation_free_days' => ['sometimes', 'integer', 'min:0'],

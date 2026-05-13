@@ -8,22 +8,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Override;
 
 class Hotel extends Model
 {
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'name',
-        'address',
-        'phone',
-        'email',
-        'description',
-        'timezone',
-        'child_age_threshold',
-        'check_in_time',
-        'check_out_time'
+        'name', 'address', 'phone', 'email', 'description', 'timezone', 'child_age_threshold',
+        'check_in_time', 'check_out_time'
     ];
 
     protected function casts()
@@ -54,9 +46,13 @@ class Hotel extends Model
         return $this->hasMany(RatePlan::class);
     }
 
+    public function bookings(): HasMany {
+        return $this->hasMany(Booking::class);
+    }
+
     public function scopeAccessibleBy(Builder $query, User $user): Builder
     {
-        if ($user->isPlatformAdmin()) {
+        if ($user->isPlatformStaff()) {
             return $query;
         }
 

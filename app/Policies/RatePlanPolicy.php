@@ -8,7 +8,7 @@ use App\Models\RatePlan;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
-class RatePlanPolicy
+class RatePlanPolicy extends BasePolicy
 {
     /**
      * Determine whether the user can view any models.

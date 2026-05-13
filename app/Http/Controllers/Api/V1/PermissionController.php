@@ -8,6 +8,7 @@ use App\Http\Requests\Api\V1\Permission\UpdatePermissionRequest;
 use App\Http\Resources\Api\V1\PermissionResource;
 use App\Models\Permission;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class PermissionController extends Controller
 {
@@ -16,6 +17,7 @@ class PermissionController extends Controller
      */
     public function index()
     {
+        Gate::authorize('viewAny');
         $permissions = Permission::all();
         return PermissionResource::collection($permissions);
     }
@@ -25,6 +27,7 @@ class PermissionController extends Controller
      */
     public function store(StorePermissionRequest $request)
     {
+        Gate::authorize('create');
         $data = $request->validated();
         $permission = Permission::create($data);
         return new PermissionResource($permission);
@@ -35,6 +38,7 @@ class PermissionController extends Controller
      */
     public function show(Permission $permission)
     {
+        Gate::authorize('view', $permission);
         return new PermissionResource($permission);
     }
 
@@ -43,6 +47,7 @@ class PermissionController extends Controller
      */
     public function update(UpdatePermissionRequest $request, Permission $permission)
     {
+        Gate::authorize('update', $permission);
         $data = $request->validated();
         $permission->update($data);
         return new PermissionResource($permission);
@@ -53,6 +58,7 @@ class PermissionController extends Controller
      */
     public function destroy(Permission $permission)
     {
+        Gate::authorize('delete', $permission);
         $permission->delete();
         return response()->noContent();
     }
