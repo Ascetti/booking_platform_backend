@@ -25,10 +25,10 @@ class UpdateUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->route('user') ?? $this->user()?->id)],
-            'phone' => ['nullable', 'string', 'min:10', 'max:255', 'regex:/^(\+7|8|7)[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$/'],
-            'password' => ['sometimes', Rules\Password::defaults()],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'email' => ['sometimes', 'required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->route('user') ?? $this->user()?->id)],
+            'phone' => ['sometimes', 'nullable', 'string', 'min:10', 'max:20', 'regex:/^(\+7|8|7)[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$/'],
+            'password' => ['sometimes', 'nullable', 'string', Rules\Password::defaults()],
             // 'role_id' => ['required', 'integer', 'exists:roles,id'],
             // 'hotel_id' => ['nullable', 'integer', 'exists:hotels,id'],
         ];

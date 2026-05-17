@@ -27,7 +27,7 @@ class StoreUserRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'min:10', 'max:255', 'regex:/^(\+7|8|7)[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$/'],
-            'password' => ['required', Rules\Password::defaults()],
+            'password' => ['required', 'string', Rules\Password::defaults()],
             // 'role_id' => ['required', 'integer', 'exists:roles,id'],
             // 'hotel_id' => ['nullable', 'integer', 'exists:hotels,id'],
         ];

@@ -26,6 +26,6 @@ class EnsureUserHasAccessToHotelData
             return $next($request);
         }
 
-        abort(403, 'Access denied. Hotel staff or support only.');
+        abort(403, 'Access denied. Hotel staff or platform support only.');
     }
 }

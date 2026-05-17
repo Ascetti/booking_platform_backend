@@ -23,15 +23,15 @@ class UpdateHotelRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'string', 'max:255'],
-            'address' => ['sometimes', 'string', 'max:255'],
-            'phone' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'string', 'max:255'],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'address' => ['sometimes', 'required', 'string', 'max:255'],
+            'phone' => ['sometimes', 'required', 'string', 'max:255', 'regex:/^(\+7|8|7)[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$/'],
+            'email' => ['sometimes', 'required', 'email', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
-            'timezone' => ['sometimes', 'string', 'max:50'],
-            'child_age_threshold' => ['sometimes', 'integer', 'min:0', 'max:18'],
-            'check_in_time' => ['sometimes', 'date_format:H:i'],
-            'check_out_time' => ['sometimes', 'date_format:H:i'],
+            'timezone' => ['sometimes', 'required', 'string', 'max:50'],
+            'child_age_threshold' => ['sometimes', 'required', 'integer', 'min:0', 'max:18'],
+            'check_in_time' => ['sometimes', 'required', 'date_format:H:i'],
+            'check_out_time' => ['sometimes', 'required', 'date_format:H:i'],
         ];
     }
 }

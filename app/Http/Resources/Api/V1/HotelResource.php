@@ -23,8 +23,8 @@ class HotelResource extends JsonResource
             'description' => $this->description,
             'timezone' => $this->timezone,
             'child_age_threshold' => $this->child_age_threshold,
-            'check_in_time' => $this->check_in_time,
-            'check_out_time' => $this->check_out_time,
+            'check_in_time' => $this->check_in_time?->format('H:i'),
+            'check_out_time' => $this->check_out_time?->format('H:i'),
         ];
     }
 }

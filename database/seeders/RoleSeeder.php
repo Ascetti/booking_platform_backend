@@ -32,9 +32,18 @@ class RoleSeeder extends Seeder
             PermissionEnum::CATEGORIES_MANAGE->value,
             PermissionEnum::ROOMS_VIEW->value,
             PermissionEnum::ROOMS_MANAGE->value,
+            PermissionEnum::MEDIA_VIEW->value,
             PermissionEnum::MEDIA_MANAGE->value,
             PermissionEnum::PLANS_VIEW->value,
             PermissionEnum::PLANS_MANAGE->value,
+            PermissionEnum::STATUSES_VIEW->value,
+            PermissionEnum::STATUSES_MANAGE->value,
+            PermissionEnum::SERVICES_VIEW->value,
+            PermissionEnum::SERVICES_MANAGE->value,
+            PermissionEnum::GUESTS_VIEW->value,
+            PermissionEnum::GUESTS_MANAGE->value,
+            PermissionEnum::BOOKINGS_VIEW->value,
+            PermissionEnum::BOOKINGS_MANAGE->value,
         ])->pluck('id')->toArray();
 
         $this->roleService->storeRole([

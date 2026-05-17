@@ -26,12 +26,12 @@ class StoreHotelRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'address' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
             'description' => ['nullable', 'string'],
-            'timezone' => ['sometimes', 'string', 'max:50'],
-            'child_age_threshold' => ['sometimes', 'integer', 'min:0', 'max:18'],
-            'check_in_time' => ['sometimes', 'date_format:H:i'],
-            'check_out_time' => ['sometimes', 'date_format:H:i'],
+            'timezone' => ['sometimes', 'required', 'string', 'max:50'],
+            'child_age_threshold' => ['sometimes', 'required', 'integer', 'min:0', 'max:18'],
+            'check_in_time' => ['sometimes', 'required', 'date_format:H:i'],
+            'check_out_time' => ['sometimes', 'required', 'date_format:H:i'],
         ];
     }
 }

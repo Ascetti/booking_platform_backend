@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -27,6 +28,28 @@ class Hotel extends Model
         ];
     }
 
+    protected function phone(): Attribute
+    {
+        return Attribute::make(
+            set: function (?string $value) {
+                if (!$value) {
+                    return null;
+                }
+                $digits = preg_replace('/\D/', '', $value);
+                if (strlen($digits) === 11) {
+                    $digits = substr($digits, 1);
+                }
+                return sprintf(
+                    '+7 (%s) %s %s-%s',
+                    substr($digits, 0, 3),
+                    substr($digits, 3, 3),
+                    substr($digits, 6, 2),
+                    substr($digits, 8, 2),
+                );
+            },
+        );
+    }
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'role_user')
@@ -44,6 +67,10 @@ class Hotel extends Model
 
     public function plans(): HasMany {
         return $this->hasMany(RatePlan::class);
+    }
+
+    public function services(): HasMany {
+        return $this->hasMany(Service::class);
     }
 
     public function bookings(): HasMany {

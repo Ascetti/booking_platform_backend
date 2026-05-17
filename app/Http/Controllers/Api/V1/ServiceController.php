@@ -8,11 +8,15 @@ use App\Http\Requests\Api\V1\Service\UpdateServiceRequest;
 use App\Http\Resources\Api\V1\ServiceResource;
 use App\Models\Hotel;
 use App\Models\Service;
+use App\Services\Hotel\ServiceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class ServiceController extends Controller
 {
+    public function __construct(
+        protected ServiceService $serviceService
+    ) {}
     /**
      * Display a listing of the resource.
      */
@@ -30,7 +34,7 @@ class ServiceController extends Controller
     {
         Gate::authorize('create', [Service::class, $hotel]);
         $data = $request->validated();
-        $service = $hotel->services()->create($data);
+        $service = $this->serviceService->createService($hotel, $data);
         return new ServiceResource($service);
     }
 
@@ -50,7 +54,7 @@ class ServiceController extends Controller
     {
         Gate::authorize('update', $service);
         $data = $request->validated();
-        $service->update($data);
+        $service = $this->serviceService->updateService($service, $data);
         return new ServiceResource($service);
     }
 
@@ -60,14 +64,14 @@ class ServiceController extends Controller
     public function destroy(Service $service)
     {
         Gate::authorize('delete', $service);
-        if ($service->bookings()
-            // ->whereNotIn('status_id', [/* ID статусов которые запрещают */])
-            ->exists()) {
-            return response([
-                'message' => 'Cannot delete service that is assigned to bookings.'
-            ], 422);
-        }
-        $service->delete();
+        // if ($service->bookings()
+        //     // ->whereNotIn('status_id', [/* ID статусов которые запрещают */])
+        //     ->exists()) {
+        //     return response([
+        //         'message' => 'Cannot delete service that is assigned to bookings.'
+        //     ], 409);
+        // }
+        $service = $this->serviceService->deleteService($service);
         return response()->noContent();
     }
 }

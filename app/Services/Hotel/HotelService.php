@@ -27,7 +27,9 @@ class HotelService
             RateOverride::whereIn('rate_plan_id', $hotel->plans()->pluck('id'))->delete();
             $hotel->categories()->delete();
             $hotel->rooms()->delete();
-            $hotel->ratePlans()->delete();
+            $hotel->plans()->delete();
+            $hotel->services()->delete();
+            $hotel->bookings()->delete();
             return $hotel->delete();
         });
     }

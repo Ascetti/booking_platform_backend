@@ -12,10 +12,10 @@ enum ServiceTypeEnum: string
     public function label(): string
     {
         return match($this) {
-            self::PER_STAY => 'per_stay',
-            self::PER_NIGHT => 'per_night',
-            self::PER_PERSON => 'per_person',
-            self::PER_PERSON_PER_NIGHT => 'per_person_per_night',
+            self::PER_STAY => 'за услугу',
+            self::PER_NIGHT => 'за ночь',
+            self::PER_PERSON => 'за человека',
+            self::PER_PERSON_PER_NIGHT => 'за гочь за человека',
         };
     }
 }

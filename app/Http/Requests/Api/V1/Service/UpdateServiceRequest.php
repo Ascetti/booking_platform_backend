@@ -3,10 +3,8 @@
 namespace App\Http\Requests\Api\V1\Service;
 
 use App\Enums\ServiceTypeEnum;
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Enum;
 
 class UpdateServiceRequest extends FormRequest
 {
@@ -26,10 +24,10 @@ class UpdateServiceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'string', 'max:255'],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
-            'price' => ['sometimes', 'numeric', 'min:0'],
-            'price_type' => ['sometimes', Rule::enum(ServiceTypeEnum::class)],
+            'price' => ['sometimes', 'required', 'numeric', 'min:0'],
+            'price_type' => ['sometimes', 'required', Rule::enum(ServiceTypeEnum::class)],
         ];
     }
 }

@@ -17,7 +17,7 @@ class BookingStatusController extends Controller
      */
     public function index()
     {
-        Gate::authorize('viewAny');
+        Gate::authorize('viewAny', BookingStatus::class);
         $statuses = BookingStatus::all();
         return BookingStatusResource::collection($statuses);
     }
@@ -27,7 +27,7 @@ class BookingStatusController extends Controller
      */
     public function store(StoreBookingStatusRequest $request)
     {
-        Gate::authorize('create');
+        Gate::authorize('create', BookingStatus::class);
         $data = $request->validated();
         $status = BookingStatus::create($data);
         return new BookingStatusResource($status);

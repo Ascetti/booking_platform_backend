@@ -19,11 +19,11 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'phone' => $this->phone,
-            'roles' => $this->roles->map(fn($role) => [
-                'id' => $role->id,
-                'name' => $role->name,
-                'hotel_id' => $role->pivot->hotel_id,
-            ]),
+            // 'roles' => $this->roles->map(fn($role) => [
+            //     'id' => $role->id,
+            //     'name' => $role->name,
+            //     'hotel_id' => $role->pivot->hotel_id,
+            // ]),
         ];
     }
 }

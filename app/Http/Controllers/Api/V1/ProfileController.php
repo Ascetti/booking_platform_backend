@@ -18,7 +18,7 @@ class ProfileController extends Controller
     public function show(Request $request)
     {
         Gate::authorize('view', $request->user());
-        return new UserResource($request->user()->load('roles'));
+        return new UserResource($request->user());
     }
 
     public function update(UpdateUserRequest $request)
@@ -26,6 +26,6 @@ class ProfileController extends Controller
         Gate::authorize('update', $request->user());
         $data = $request->validated();
         $user = $this->userService->updateUser($request->user(), $data);
-        return new UserResource($user->load('roles'));
+        return new UserResource($user);
     }
 }
