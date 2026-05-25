@@ -29,7 +29,7 @@ class UpdateMediaRequest extends FormRequest
                 'integer',
                 Rule::exists('room_categories', 'id')->where('hotel_id', $this->route('hotel')->id)
             ],
-            'file' => ['sometimes', 'image', 'mimes:jpg,jpeg,png', 'max:10240'],
+            'file' => ['sometimes', 'required', 'image', 'mimes:jpg,jpeg,png', 'max:10240'],
         ];
     }
 }

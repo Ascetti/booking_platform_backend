@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Hotel;
+use App\Models\RoomCategory;
 use App\Models\User;
 use App\Policies\HotelPolicy;
 use Illuminate\Auth\Notifications\ResetPassword;

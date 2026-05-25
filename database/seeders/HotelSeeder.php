@@ -46,16 +46,22 @@ class HotelSeeder extends Seeder
                     $allAmenities->random(rand(3, 7))->pluck('id')
                 );
 
-                $prefix = rand(1, 5);
-                for ($i = 1; $i <= 3; $i++) {
-                    Room::factory()
-                        // ->for($hotel)
-                        // ->for($category, 'category')
+                 $floor = rand(1, 5);
+                for ($i = 1; $i <= 14; $i++) {
+                    if ($i < 10) {
+                        Room::factory()
                         ->create([
-                            'hotel_id' => $hotel->id,
                             'room_category_id' => $category->id,
-                            'name' => "{$prefix}0{$i}"
+                            'name' => "{$floor}0{$i}"
                         ]);
+                    }
+                    else {
+                        Room::factory()
+                        ->create([
+                            'room_category_id' => $category->id,
+                            'name' => "{$floor}{$i}"
+                        ]);
+                    }   
                 }
             }
         }

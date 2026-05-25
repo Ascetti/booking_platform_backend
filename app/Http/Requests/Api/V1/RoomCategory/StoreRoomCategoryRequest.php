@@ -25,11 +25,12 @@ class StoreRoomCategoryRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'area' => ['required', 'integer', 'min:1'],
+            'description' => ['nullable', 'string', 'max:255'],
             'base_capacity' => ['required', 'integer', 'min:1'],
             'extra_capacity' => ['required', 'integer', 'min:0'],
             'bedding_options' => ['required', 'string', 'max:255'],
-            'amenities' => ['nullable', 'array'],
-            'amenities.*' => ['integer', 'exists:amenities,id'],
+            // 'amenities' => ['nullable', 'array'],
+            // 'amenities.*' => ['integer', 'exists:amenities,id'],
         ];
     }
 }

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\PricingController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\RatePlanController;
 use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\RoomCategoryAmenityController;
 use App\Http\Controllers\Api\V1\RoomCategoryController;
 use App\Http\Controllers\Api\V1\RoomController;
 use App\Http\Controllers\Api\V1\ServiceController;
@@ -44,11 +45,17 @@ Route::prefix('v1')->group(function () {
 
         Route::apiResource('amenities', AmenityController::class);
         Route::apiResource('hotels.room-categories', RoomCategoryController::class)->shallow()->middleware(EnsureUserHasAccessToHotelData::class);
-        Route::apiResource('hotels.rooms', RoomController::class)->shallow()->middleware(EnsureUserHasAccessToHotelData::class);
-        Route::apiResource('hotels.media', MediaController::class)->only(['store', 'destroy'])->shallow()->middleware(EnsureUserHasAccessToHotelData::class);
+        Route::apiResource('room-categories.rooms', RoomController::class)->shallow()->middleware(EnsureUserHasAccessToHotelData::class);
+        Route::apiResource('room-categories.media', MediaController::class)->parameters(['media' => 'media'])->only(['index', 'store', 'destroy'])->shallow()->middleware(EnsureUserHasAccessToHotelData::class);
+
+        Route::prefix('room-categories/{room_category}')->group(function () {
+            Route::get('amenities', [RoomCategoryAmenityController::class, 'index']);
+            Route::put('amenities', [RoomCategoryAmenityController::class, 'update']);
+        })->middleware(EnsureUserHasAccessToHotelData::class);
+        // Route::apiResource('room-categories.amenities', RoomCategoryAmenityController::class)->only(['index', 'update'])->middleware(EnsureUserHasAccessToHotelData::class);
 
         Route::apiResource('hotels.rate-plans', RatePlanController::class)->shallow()->middleware(EnsureUserHasAccessToHotelData::class);
-        Route::prefix('rate-plans/{rate-plan}')->group(function () {
+        Route::prefix('rate-plans/{rate_plan}')->group(function () {
             Route::get('pricing', [PricingController::class, 'show']);
             Route::post('pricing', [PricingController::class, 'update']);
         })->middleware(EnsureUserHasAccessToHotelData::class);

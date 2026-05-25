@@ -13,9 +13,10 @@ return new class extends Migration
     {
         Schema::create('rooms', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('hotel_id')->constrained()->cascadeOnDelete();
+            // $table->foreignId('hotel_id')->constrained()->cascadeOnDelete();
             $table->foreignId('room_category_id')->constrained()->cascadeOnDelete();
             $table->string('name');
+            $table->unique(['room_category_id', 'name']);
             $table->timestamps();
             $table->softDeletes();
         });

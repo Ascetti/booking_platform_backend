@@ -16,8 +16,9 @@ class RoomResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'hotel_id' => $this->hotel_id,
-            'category' => new RoomCategoryResource($this->whenLoaded('category')),
+            // 'hotel_id' => $this->hotel_id,
+            // 'category' => new RoomCategoryResource($this->whenLoaded('category')),
+            'category' => $this->room_category_id,
             'name' => $this->name,
         ];
     }

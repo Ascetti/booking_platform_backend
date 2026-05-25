@@ -4,9 +4,8 @@ namespace App\Http\Requests\Api\V1\Amenity;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
-class UpdateAmenityRequest extends FormRequest
+class UpdateRoomCategoryAmenityRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,8 +23,8 @@ class UpdateAmenityRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('amenities', 'name')->ignore($this->route('amenity'))],
-            'icon_src' => ['sometimes', 'required', 'string', 'max:255'],
+            'amenities' => ['required', 'array'],
+            'amenities.*' => ['integer', 'exists:amenities,id'],
         ];
     }
 }

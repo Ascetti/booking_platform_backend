@@ -7,6 +7,7 @@ use App\Http\Requests\Api\V1\Media\StoreMediaRequest;
 use App\Http\Resources\Api\V1\MediaResource;
 use App\Models\Hotel;
 use App\Models\Media;
+use App\Models\RoomCategory;
 use App\Services\Hotel\MediaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -18,19 +19,26 @@ class MediaController extends Controller
     ) {}
 
     /**
+     * Display a listing of the resource.
+     */
+    public function index(RoomCategory $roomCategory)
+    {
+        Gate::authorize('viewAny', [Media::class, $roomCategory]);
+        $media = $roomCategory->media;
+        return MediaResource::collection($media);
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreMediaRequest $request, Hotel $hotel)
+    public function store(StoreMediaRequest $request, RoomCategory $roomCategory)
     {
-        Gate::authorize('create', [Media::class, $hotel]);
-        $data = $request->validated();
-       
+        Gate::authorize('create', [Media::class, $roomCategory]);
+        $data = $request->validated();       
         $media = $this->mediaService->createMedia(
-            $hotel,
-            $data['room_category_id'],
+            $roomCategory,
             $request->file('file')
         );
-
         return new MediaResource($media);
     }
 
@@ -39,7 +47,7 @@ class MediaController extends Controller
      */
     public function destroy(Media $media)
     {
-        Gate::authorize('create', $media);
+        Gate::authorize('delete', $media);
         $this->mediaService->deleteMedia($media);
         return response()->noContent();
     }

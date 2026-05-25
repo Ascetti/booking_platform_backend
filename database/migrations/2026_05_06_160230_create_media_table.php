@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('media', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('hotel_id')->constrained()->cascadeOnDelete();
+            // $table->foreignId('hotel_id')->constrained()->cascadeOnDelete();
             $table->foreignId('room_category_id')->constrained()->cascadeOnDelete();
             $table->string('src');
             $table->timestamps();

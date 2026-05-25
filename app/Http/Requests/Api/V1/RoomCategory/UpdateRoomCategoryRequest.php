@@ -23,13 +23,14 @@ class UpdateRoomCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'string', 'max:255'],
-            'area' => ['sometimes', 'integer', 'min:1'],
-            'base_capacity' => ['sometimes', 'integer', 'min:1'],
-            'extra_capacity' => ['sometimes', 'integer', 'min:0'],
-            'bedding_options' => ['sometimes', 'string', 'max:255'],
-            'amenities' => ['sometimes', 'array'],
-            'amenities.*' => ['integer', 'exists:amenities,id'],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'area' => ['sometimes', 'required', 'integer', 'min:1'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'base_capacity' => ['sometimes', 'required', 'integer', 'min:1'],
+            'extra_capacity' => ['sometimes', 'required', 'integer', 'min:0'],
+            'bedding_options' => ['sometimes', 'required', 'string', 'max:255'],
+            // 'amenities' => ['sometimes', 'array'],
+            // 'amenities.*' => ['integer', 'exists:amenities,id'],
         ];
     }
 }

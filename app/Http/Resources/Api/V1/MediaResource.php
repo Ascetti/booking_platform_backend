@@ -17,9 +17,9 @@ class MediaResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'hotel_id' => $this->hotel_id,
+            // 'hotel_id' => $this->hotel_id,
             'room_category_id' => $this->room_category_id,
-            'url' => Storage::url($this->src),
+            'url' => url(Storage::url($this->src)),
         ];
     }
 }

@@ -24,11 +24,6 @@ class StoreMediaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'room_category_id' => [
-                'required',
-                'integer',
-                Rule::exists('room_categories', 'id')->where('hotel_id', $this->route('hotel')->id)
-            ],
             'file' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:10240'],
         ];
     }

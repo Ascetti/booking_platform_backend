@@ -4,28 +4,33 @@ namespace App\Services\Hotel;
 
 use App\Models\Hotel;
 use App\Models\Room;
+use App\Models\RoomCategory;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class RoomService
 {
-    public function createRoom(Hotel $hotel, array $data): Room
+    public function createRoom(RoomCategory $category, array $data): Collection
     {
-        return $hotel->rooms()->create($data);
+        if (isset($data['names']) && is_array($data['names'])) {
+            return $this->bulkCreateRooms($category, $data['names']);
+        }
+        return collect([
+            $category->rooms()->create([
+                'name' => $data['name'],
+            ])
+        ]);
     }
 
-    public function bulkCreateRooms(Hotel $hotel, int $categoryId, array $roomNames): Collection
+    private function bulkCreateRooms(RoomCategory $category, array $roomNames): Collection
     {
-        return DB::transaction(function () use ($hotel, $categoryId, $roomNames) {
+        return DB::transaction(function () use ($category, $roomNames) {
             $rooms = collect();
-
             foreach ($roomNames as $name) {
-                $rooms->push($hotel->rooms()->create([
-                    'room_category_id' => $categoryId,
+                $rooms->push($category->rooms()->create([
                     'name' => $name,
                 ]));
             }
-
             return $rooms;
         });
     }

@@ -24,6 +24,7 @@ class RoomCategoryResource extends JsonResource
             'extra_capacity' => $this->extra_capacity,
             'bedding_options' => $this->bedding_options,
             'rooms_count' => $this->whenCounted('rooms'),
+            'rooms' => RoomResource::collection($this->whenLoaded('rooms')),
             'amenities' => AmenityResource::collection($this->whenLoaded('amenities')),
             'media' => MediaResource::collection($this->whenLoaded('media')),
         ];

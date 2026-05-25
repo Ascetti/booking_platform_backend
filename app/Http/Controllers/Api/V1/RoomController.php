@@ -8,6 +8,7 @@ use App\Http\Requests\Api\V1\Room\UpdateRoomRequest;
 use App\Http\Resources\Api\V1\RoomResource;
 use App\Models\Hotel;
 use App\Models\Room;
+use App\Models\RoomCategory;
 use App\Services\Hotel\RoomService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -21,32 +22,22 @@ class RoomController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Hotel $hotel)
+    public function index(RoomCategory $roomCategory)
     {
-        Gate::authorize('viewAny', [Room::class, $hotel]);
-        $rooms = $hotel->rooms()
-            ->with('category')
-            ->paginate(20);
+        Gate::authorize('viewAny', [Room::class, $roomCategory]);
+        $rooms = $roomCategory->rooms()->paginate(20);
         return RoomResource::collection($rooms);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreRoomRequest $request, Hotel $hotel)
+    public function store(StoreRoomRequest $request, RoomCategory $roomCategory)
     {
-        Gate::authorize('create', [Room::class, $hotel]);
+        Gate::authorize('create', [Room::class, $roomCategory]);
         $data = $request->validated();
-        if (isset($data['names']) && is_array($data['names'])) {
-            $rooms = $this->roomService->bulkCreateRooms(
-                $hotel,
-                $data['room_category_id'],
-                $data['names']
-            );
-            return RoomResource::collection($rooms);
-        }
-        $room = $this->roomService->createRoom($hotel, $data);
-        return new RoomResource($room);
+        $room = $this->roomService->createRoom($roomCategory, $data);
+        return RoomResource::collection($room);
     }
 
     /**
@@ -55,7 +46,7 @@ class RoomController extends Controller
     public function show(Room $room)
     {
         Gate::authorize('view', $room);
-        return new RoomResource($room->load('category'));
+        return new RoomResource($room);
     }
 
     /**

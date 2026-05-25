@@ -10,18 +10,14 @@ use Illuminate\Support\Facades\Storage;
 
 class MediaService
 {
-    public function createMedia(Hotel $hotel, int $categoryId, UploadedFile $file): Media
+    public function createMedia(RoomCategory $category, UploadedFile $file): Media
     {
-        $path = "hotels/{$hotel->id}/room-categories/{$categoryId}";
+        $path = "hotels/{$category->hotel_id}/room-categories/{$category->id}";
 
         $filePath = $file->store($path, 'public');
 
         try {
-            return Media::create([
-                'hotel_id' => $hotel->id,
-                'room_category_id' => $categoryId,
-                'src' => $filePath,
-            ]);
+            return $category->media()->create(['src' => $filePath,]);
         } catch (\Exception $e) {
             Storage::disk('public')->delete($filePath);
             throw $e;

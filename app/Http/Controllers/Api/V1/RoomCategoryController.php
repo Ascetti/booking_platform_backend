@@ -25,7 +25,7 @@ class RoomCategoryController extends Controller
     {
         Gate::authorize('viewAny', [RoomCategory::class, $hotel]);
         $categories = $hotel->categories()
-            ->with(['amenities', 'media'])
+            ->with(['amenities', 'media', 'rooms'])
             ->withCount('rooms')
             ->get();
         return RoomCategoryResource::collection($categories);
@@ -48,7 +48,7 @@ class RoomCategoryController extends Controller
     public function show(RoomCategory $roomCategory)
     {
         Gate::authorize('view', $roomCategory);
-        return new RoomCategoryResource($roomCategory->load(['amenities', 'media']));
+        return new RoomCategoryResource($roomCategory->load(['amenities', 'media', 'rooms'])->loadCount('rooms'));
     }
 
     /**

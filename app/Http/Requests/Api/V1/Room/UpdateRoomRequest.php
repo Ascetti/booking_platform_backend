@@ -23,12 +23,16 @@ class UpdateRoomRequest extends FormRequest
      */
     public function rules(): array
     {
+        $room = $this->route('room');
         return [
-            'name' => ['sometimes','string','max:255'],
-            'room_category_id' => [
+            'name' => [
                 'sometimes',
-                'integer',
-                Rule::exists('room_categories', 'id')->where('hotel_id', $this->room->hotel_id)
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('rooms', 'name')
+                    ->where(fn($query) => $query->where('room_category_id', $room->room_category_id))
+                    ->ignore($room->id),
             ],
         ];
     }

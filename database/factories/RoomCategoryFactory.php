@@ -18,12 +18,25 @@ class RoomCategoryFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->word(),
+            'name' => fake()->randomElement([
+                'Standard',
+                'Econom',
+                'Family',
+                'Deluxe',
+                'Suite',
+                'President Suite',
+            ]),
             'description' => fake()->sentence(10),
             'area' => fake()->numberBetween(10, 100),
             'base_capacity' => fake()->numberBetween(1, 4),
             'extra_capacity' => fake()->numberBetween(0, 2),
-            'bedding_options' => fake()->sentence(4)
+            'bedding_options' => fake()->randomElement([
+                '1 double bed',
+                '2 single beds',
+                '1 king-size bed',
+                '1 king-size bed + 1 single bed',
+                '1 double bed + 2 single bed',
+            ]),
         ];
     }
 }
