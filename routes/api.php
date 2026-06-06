@@ -57,8 +57,15 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('hotels.rate-plans', RatePlanController::class)->shallow()->middleware(EnsureUserHasAccessToHotelData::class);
         Route::prefix('rate-plans/{rate_plan}')->group(function () {
             Route::get('pricing', [PricingController::class, 'show']);
-            Route::post('pricing', [PricingController::class, 'update']);
+            // Route::get('prices', [RatePlanPricesController::class, 'index']);
+            // Route::put('prices', [RatePlanPricesController::class, 'update']);
+            // Route::get('overrides', [RatePlanOverridesController::class, 'index']);
+            // Route::put('overrides', [RatePlanOverridesController::class, 'update']);
         })->middleware(EnsureUserHasAccessToHotelData::class);
+        // Route::prefix('rate-plans/{rate_plan}')->group(function () {
+        //     Route::get('pricing', [PricingController::class, 'show']);
+        //     Route::post('pricing', [PricingController::class, 'update']);
+        // })->middleware(EnsureUserHasAccessToHotelData::class);
 
         Route::apiResource('booking-statuses', BookingStatusController::class);
         Route::apiResource('hotels.services', ServiceController::class)->shallow()->middleware(EnsureUserHasAccessToHotelData::class);

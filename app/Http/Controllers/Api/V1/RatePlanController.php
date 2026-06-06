@@ -24,7 +24,7 @@ class RatePlanController extends Controller
     public function index(Hotel $hotel)
     {
         Gate::authorize('viewAny', [RatePlan::class, $hotel]);
-        $ratePlans = $hotel->ratePlans()->with(['parent', 'children', 'prices'])->get();
+        $ratePlans = $hotel->plans()->with(['parent'])->get();
         return RatePlanResource::collection($ratePlans);
     }
 
@@ -36,7 +36,7 @@ class RatePlanController extends Controller
         Gate::authorize('create', [RatePlan::class, $hotel]);
         $data = $request->validated();
         $ratePlan = $this->ratePlanService->createRatePlan($hotel, $data);
-        return new RatePlanResource($ratePlan->load('prices'));
+        return new RatePlanResource($ratePlan);
     }
 
     /**
@@ -45,7 +45,7 @@ class RatePlanController extends Controller
     public function show(RatePlan $ratePlan)
     {
         Gate::authorize('view', $ratePlan);
-        return new RatePlanResource($ratePlan->load(['parent', 'children', 'prices']));
+        return new RatePlanResource($ratePlan->load(['parent', 'children']));
     }
 
     /**
@@ -56,7 +56,7 @@ class RatePlanController extends Controller
         Gate::authorize('update', $ratePlan);
         $data = $request->validated();
         $ratePlan = $this->ratePlanService->updateRatePlan($ratePlan, $data);
-        return new RatePlanResource($ratePlan->load('prices'));
+        return new RatePlanResource($ratePlan);
     }
 
     /**

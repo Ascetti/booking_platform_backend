@@ -25,38 +25,52 @@ class StoreRatePlanRequest extends FormRequest
      */
     public function rules(): array
     {
+        $hotelId = $this->route('hotel')->id;
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('rate_plans', 'name')->where(
+                    fn($query) => $query->where('hotel_id', $hotelId)
+                ),
+            ],
             'description' => ['nullable', 'string'],
             'parent_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('rate_plans', 'id')->where(function ($query) {
-                    $query->where('hotel_id', $this->route('hotel')->id);
+                Rule::exists('rate_plans', 'id')->where(function ($query) use ($hotelId) {
+                    $query->where('hotel_id', $hotelId)
+                        ->whereNull('parent_id');
                 }),
             ],
+            'modifier_percent' => ['required_with:parent_id', 'exclude_if:parent_id,null', 'integer', 'min:-1000', 'max:1000'],
             'meal_plan' => ['required', Rule::enum(MealPlanEnum::class)],
-            'modifier_percent' => ['nullable', 'integer', 'min:-100', 'max:1000'],
-            'min_stay_days' => ['sometimes', 'integer', 'min:1'],
+            'cancellation_free_days' => ['sometimes', 'required', 'integer', 'min:0'],
+            'cancellation_penalty_percent' => ['sometimes', 'required', 'integer', 'min:0', 'max:100'],
+            'prepayment_percent' => ['sometimes', 'required', 'integer', 'min:0', 'max:100'],
+            'min_stay_days' => ['sometimes', 'required', 'integer', 'min:1'],
             'min_days_before_arrival' => ['nullable', 'integer', 'min:0'],
             'max_days_before_arrival' => ['nullable', 'integer', 'min:0', 'gte:min_days_before_arrival'],
-            'cancellation_free_days' => ['sometimes', 'integer', 'min:0'],
-            'cancellation_penalty_percent' => ['sometimes', 'integer', 'min:0', 'max:100'],
-            'prepayment_percent' => ['sometimes', 'integer', 'min:0', 'max:100'],
-            'is_active' => ['sometimes', 'boolean'],
-            'base_prices' => ['required', 'array', 'min:1'],
-            'base_prices.*.room_category_id' => [
-                'required', 
-                'integer', 
-                Rule::exists('room_categories', 'id')->where('hotel_id', $this->route('hotel')->id)
-            ],
-            'base_prices.*.monday'    => ['required', 'numeric', 'min:0'],
-            'base_prices.*.tuesday'   => ['required', 'numeric', 'min:0'],
-            'base_prices.*.wednesday' => ['required', 'numeric', 'min:0'],
-            'base_prices.*.thursday'  => ['required', 'numeric', 'min:0'],
-            'base_prices.*.friday'    => ['required', 'numeric', 'min:0'],
-            'base_prices.*.saturday'  => ['required', 'numeric', 'min:0'],
-            'base_prices.*.sunday'    => ['required', 'numeric', 'min:0'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
+            // 'pricing' => ['required_without:parent_id', 'array'],
+            // 'pricing.categories' => ['required', 'array','min:1'],
+            // 'pricing.categories.*.room_category_id' => [
+            //     'required',
+            //     'integer',
+            //     Rule::exists('room_categories', 'id')
+            //         ->where(function ($query) use ($hotelId) {
+            //             $query->where('hotel_id', $hotelId);
+            //         }),
+            // ],
+            // 'pricing.categories.*.weekdays' => ['required', 'array'],
+            // 'pricing.categories.*.weekdays.monday' => ['required', 'numeric', 'min:0'],
+            // 'pricing.categories.*.weekdays.tuesday' => ['required', 'numeric', 'min:0'],
+            // 'pricing.categories.*.weekdays.wednesday' => ['required', 'numeric', 'min:0'],
+            // 'pricing.categories.*.weekdays.thursday' => ['required', 'numeric', 'min:0'],
+            // 'pricing.categories.*.weekdays.friday' => ['required', 'numeric', 'min:0'],
+            // 'pricing.categories.*.weekdays.saturday' => ['required', 'numeric', 'min:0'],
+            // 'pricing.categories.*.weekdays.sunday' => ['required', 'numeric', 'min:0'],
         ];
     }
 }

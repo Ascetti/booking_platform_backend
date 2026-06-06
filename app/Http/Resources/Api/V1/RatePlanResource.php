@@ -22,7 +22,6 @@ class RatePlanResource extends JsonResource
             'modifier_percent' => $this->modifier_percent,
             'name' => $this->name,
             'description' => $this->description,
-            'is_active' => $this->is_active,
             'meal_plan' => $this->meal_plan->value,
             'meal_plan_label' => $this->meal_plan->label(),
             'constraints' => [
@@ -35,36 +34,35 @@ class RatePlanResource extends JsonResource
                 'penalty_percent' => $this->cancellation_penalty_percent,
             ],
             'prepayment_percent' => $this->prepayment_percent,
-            'base_prices' => $this->prepareBasePrices(),
-            'parent' => new RatePlanResource($this->whenLoaded('parent')),
-            'children' => RatePlanResource::collection($this->whenLoaded('children')),
-            'created_at' => $this->created_at
+            'is_active' => $this->is_active,
+            'parent' => new self($this->whenLoaded('parent')),
+            'children' => self::collection($this->whenLoaded('children')),
+            // 'created_at' => $this->created_at?->format('Y-m-d H:i:s')
         ];
     }
 
-    protected function prepareBasePrices(): array
-    {
-        if (!$this->relationLoaded('prices')) {
-            return [];
-        }
+    // protected function prepareBasePrices(): array
+    // {
+    //     if (!$this->relationLoaded('prices')) {
+    //         return [];
+    //     }
 
-        $startOfWeek = Carbon::now()->addWeek()->startOfWeek();
-        $endOfWeek = (clone $startOfWeek)->endOfWeek();
+    //     $startOfWeek = Carbon::now()->addWeek()->startOfWeek();
+    //     $endOfWeek = (clone $startOfWeek)->endOfWeek();
 
-        return $this->prices
-            ->whereBetween('date', [$startOfWeek->format('Y-m-d'), $endOfWeek->format('Y-m-d')])
-            ->groupBy('room_category_id')
-            ->map(function ($prices, $categoryId) {
-                $categoryData = ['room_category_id' => $categoryId];
-                
-                foreach ($prices as $price) {
-                    $dayKey = strtolower(Carbon::parse($price->date)->englishDayOfWeek);
-                    $categoryData[$dayKey] = $price->price;
-                }
-                
-                return $categoryData;
-            })
-            ->values()
-            ->all();
-    }
+    //     return $this->prices
+    //         ->whereBetween('date', [$startOfWeek->format('Y-m-d'), $endOfWeek->format('Y-m-d')])
+    //         ->groupBy('room_category_id')
+    //         ->map(function ($prices, $categoryId) {
+    //             $categoryData = ['room_category_id' => $categoryId];
+    //             foreach ($prices as $price) {
+    //                 $dayKey = strtolower(Carbon::parse($price->date)->englishDayOfWeek);
+    //                 $categoryData[$dayKey] = $price->price;
+    //             }
+
+    //             return $categoryData;
+    //         })
+    //         ->values()
+    //         ->all();
+    // }
 }

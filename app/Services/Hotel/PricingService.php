@@ -5,12 +5,15 @@ namespace App\Services\Hotel;
 use App\Models\RatePlan;
 use App\Models\RateOverride;
 use App\Models\RatePrice;
+use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 class PricingService
 {
+    private const HORIZON_DAYS = 365;
+
     public function updatePricing(RatePlan $ratePlan, array $data): void
     {
         $period = CarbonPeriod::create($data['start_date'], $data['end_date']);
@@ -67,8 +70,8 @@ class PricingService
             ->whereBetween('date', [$startDate, $endDate])
             ->leftJoin('rate_overrides', function ($join) use ($ratePlan) {
                 $join->on('rate_prices.date', '=', 'rate_overrides.date')
-                     ->on('rate_prices.room_category_id', '=', 'rate_overrides.room_category_id')
-                     ->where('rate_overrides.rate_plan_id', '=', $ratePlan->id);
+                    ->on('rate_prices.room_category_id', '=', 'rate_overrides.room_category_id')
+                    ->where('rate_overrides.rate_plan_id', '=', $ratePlan->id);
             })
             ->select([
                 'rate_prices.date',
@@ -77,13 +80,13 @@ class PricingService
                 'rate_overrides.override_price',
                 'rate_overrides.min_stay',
                 'rate_overrides.is_closed',
-                    DB::raw('COALESCE(rate_overrides.override_price, rate_prices.price) as raw_final_price')
-                ])
+                DB::raw('COALESCE(rate_overrides.override_price, rate_prices.price) as raw_final_price')
+            ])
             ->get()
             ->map(function ($item) use ($ratePlan) {
                 // Формула: Цена * (1 + (модификатор / 100))
                 // Например: 1000 * (1 + (-10 / 100)) = 900
-                $finalPrice = $ratePlan->parent_id 
+                $finalPrice = $ratePlan->parent_id
                     ? $item->raw_final_price * (1 + ($ratePlan->modifier_percent / 100))
                     : $item->raw_final_price;
 
@@ -94,5 +97,42 @@ class PricingService
 
                 return $item;
             });
+    }
+
+
+    public function generateFuturePrices(RatePlan $ratePlan, array $pricing, Carbon $from): void
+    {
+        if ($ratePlan->parent_id !== null) {
+            return;
+        }
+
+        $from = $from->copy()->startOfDay();
+        $to = $from->copy()->addDays(self::HORIZON_DAYS - 1);
+
+        RatePrice::where('rate_plan_id', $ratePlan->id)
+            ->where('date', '>=', $from)
+            ->delete();
+        $period = CarbonPeriod::create($from, $to);
+        $rows = [];
+        foreach ($pricing['categories'] as $category) {
+            foreach (CarbonPeriod::create($from, $to) as $date) {
+                $day = strtolower($date->englishDayOfWeek);
+                $rows[] = [
+                    'rate_plan_id' => $ratePlan->id,
+                    'room_category_id' => $category['room_category_id'],
+                    'date' => $date->toDateString(),
+                    'price' => $category['weekdays'][$day],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+                if (count($rows) >= 1000) {
+                    RatePrice::insert($rows);
+                    $rows = [];
+                }
+            }
+        }
+        if (!empty($rows)) {
+            RatePrice::insert($rows);
+        }
     }
 }

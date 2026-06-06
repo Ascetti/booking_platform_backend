@@ -15,12 +15,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('hotel_id')->constrained()->cascadeOnDelete();
             $table->foreignId('parent_id')->nullable()->constrained('rate_plans')->nullOnDelete();
-            $table->integer('modifier_percent')->default(10);
+            $table->integer('modifier_percent')->nullable();
             $table->string('name');
             $table->text('description')->nullable();
             $table->string('meal_plan', 10)->default('RO');
             $table->unsignedInteger('cancellation_free_days')->default(2);
-            $table->unsignedInteger('cancellation_penalty_percent')->default(100);
+            $table->unsignedInteger('cancellation_penalty_percent')->default(10);
             $table->unsignedInteger('prepayment_percent')->default(0);
             $table->unsignedInteger('min_days_before_arrival')->nullable();
             $table->unsignedInteger('max_days_before_arrival')->nullable();

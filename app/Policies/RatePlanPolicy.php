@@ -23,7 +23,7 @@ class RatePlanPolicy extends BasePolicy
      */
     public function view(User $user, RatePlan $ratePlan): bool
     {
-        return $user->hasHotelPermission(PermissionEnum::PLANS_MANAGE, $ratePlan->hotel_id);
+        return $user->hasHotelPermission(PermissionEnum::PLANS_VIEW, $ratePlan->hotel_id);
     }
 
     /**
