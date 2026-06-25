@@ -7,32 +7,56 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class BookingResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'hotel_id' => $this->hotel_id,           
-            'status' => new BookingStatusResource($this->whenLoaded('status')),
-            'check_in_date' => $this->check_in_date->format('Y-m-d'),
+            'id'       => $this->id,
+            'hotel_id' => $this->hotel_id,
+
+            // Вложенные ресурсы — переиспользуем существующие
+            'status'    => new BookingStatusResource($this->whenLoaded('status')),
+            'category'  => new RoomCategoryResource($this->whenLoaded('category')),
+            'room'      => new RoomResource($this->whenLoaded('room')),
+            'rate_plan' => new RatePlanResource($this->whenLoaded('plan')),
+
+            'check_in_date'  => $this->check_in_date->format('Y-m-d'),
             'check_out_date' => $this->check_out_date->format('Y-m-d'),
-            'nights_count' => $this->check_in_date->diffInDays($this->check_out_date),
-            'adults_count' => $this->adults_count,
+            'nights'         => $this->calculateNights(),
+
+            'adults_count'   => $this->adults_count,
             'children_count' => $this->children_count,
+
             'room_price_at_booking' => $this->room_price_at_booking,
-            'total_price' => $this->total_price,
+            'total_price'           => $this->total_price,
+
             'comment' => $this->comment,
-            'category' => new RoomCategoryResource($this->whenLoaded('category')),
-            'room' => new RoomResource($this->whenLoaded('room')),
-            'plan' => new RatePlanResource($this->whenLoaded('plan')),
-            'guests' => GuestResource::collection($this->whenLoaded('guests')),
-            'services' => ServiceResource::collection($this->whenLoaded('services')),
-            'created_at' => $this->created_at->toDateTimeString(),
-            'updated_at' => $this->updated_at->toDateTimeString(),
+
+            // Гости — данные из снимка (pivot), не из профиля гостя
+            'guests' => $this->whenLoaded('guests', function () {
+                return $this->guests->map(fn($guest) => [
+                    'id'         => $guest->id,
+                    'is_primary' => (bool) $guest->pivot->is_primary,
+                    'first_name' => $guest->pivot->first_name,
+                    'last_name'  => $guest->pivot->last_name,
+                    'email'      => $guest->pivot->email,
+                    'phone'      => $guest->pivot->phone,
+                ]);
+            }),
+
+            // Услуги — цена из снимка (pivot)
+            'services' => $this->whenLoaded('services', function () {
+                return $this->services->map(fn($service) => [
+                    'id'               => $service->id,
+                    'name'             => $service->name,
+                    'price_type'       => $service->price_type,
+                    'quantity'         => $service->pivot->quantity,
+                    'price_at_booking' => $service->pivot->price_at_booking,
+                    'total'            => $service->pivot->quantity * $service->pivot->price_at_booking,
+                ]);
+            }),
+
+            'created_at' => $this->created_at->format('Y-m-d H:i:s'),
+            'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
         ];
     }
 }

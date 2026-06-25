@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Hotel;
+namespace App\Services\Pricing;
 
 use App\Models\Hotel;
 use App\Models\RatePlan;
@@ -32,10 +32,8 @@ class RatePlanService
         //     }
         //     return $ratePlan->load(['parent']);
         // });
-        return DB::transaction(function () use ($hotel, $data) {
-            $ratePlan = $hotel->plans()->create($data);
-            return $ratePlan;
-        });
+        $ratePlan = $hotel->plans()->create($data);
+        return $ratePlan;
     }
 
     public function updateRatePlan(RatePlan $ratePlan, array $data): RatePlan

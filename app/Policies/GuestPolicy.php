@@ -16,7 +16,10 @@ class GuestPolicy extends BasePolicy
      */
     public function viewAny(User $user, Hotel $hotel): bool
     {
-        return $user->hasPermission(PermissionEnum::GUESTS_VIEW, $hotel->id);
+        if ($user->isPlatformStaff()) {
+            return $user->hasGlobalPermission(PermissionEnum::GUESTS_VIEW);
+        }
+        return $user->hasHotelPermission(PermissionEnum::GUESTS_VIEW, $hotel->id);
     }
 
     /**
@@ -24,7 +27,10 @@ class GuestPolicy extends BasePolicy
      */
     public function view(User $user, Guest $guest): bool
     {
-        return $this->isGuestRelatedToUserHotelsAndUserHasPermission($user, $guest, PermissionEnum::GUESTS_VIEW);
+        if ($user->isPlatformStaff()) {
+            return $user->hasGlobalPermission(PermissionEnum::GUESTS_VIEW);
+        }
+        return $user->hasHotelPermission(PermissionEnum::GUESTS_VIEW, $guest->hotel_id);
     }
 
     /**
@@ -32,7 +38,8 @@ class GuestPolicy extends BasePolicy
      */
     public function create(User $user, Hotel $hotel): bool
     {
-        return $user->hasPermission(PermissionEnum::GUESTS_MANAGE, $hotel->id);
+        return false;
+        // return $user->hasPermission(PermissionEnum::GUESTS_MANAGE, $hotel->id);
     }
 
     /**
@@ -40,7 +47,10 @@ class GuestPolicy extends BasePolicy
      */
     public function update(User $user, Guest $guest): bool
     {
-        return $this->isGuestRelatedToUserHotelsAndUserHasPermission($user, $guest, PermissionEnum::GUESTS_MANAGE);
+        if ($user->isPlatformStaff()) {
+            return $user->hasGlobalPermission(PermissionEnum::GUESTS_MANAGE);
+        }
+        return $user->hasHotelPermission(PermissionEnum::GUESTS_MANAGE, $guest->hotel_id);
     }
 
     /**
@@ -48,7 +58,10 @@ class GuestPolicy extends BasePolicy
      */
     public function delete(User $user, Guest $guest): bool
     {
-        return $this->isGuestRelatedToUserHotelsAndUserHasPermission($user, $guest, PermissionEnum::GUESTS_MANAGE);
+        if ($user->isPlatformStaff()) {
+            return $user->hasGlobalPermission(PermissionEnum::GUESTS_MANAGE);
+        }
+        return $user->hasHotelPermission(PermissionEnum::GUESTS_MANAGE, $guest->hotel_id);
     }
 
     /**

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\BookingStatusEnum;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,8 +17,13 @@ class RoomCategory extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'hotel_id', 'name', 'description', 'area', 
-        'base_capacity', 'extra_capacity', 'bedding_options'
+        'hotel_id',
+        'name',
+        'description',
+        'area',
+        'base_capacity',
+        'extra_capacity',
+        'bedding_options'
     ];
 
     protected function casts(): array
@@ -28,31 +35,103 @@ class RoomCategory extends Model
         ];
     }
 
-    public function hotel(): BelongsTo {
+    public function hotel(): BelongsTo
+    {
         return $this->belongsTo(Hotel::class);
     }
 
-    public function rooms(): HasMany {
+    public function rooms(): HasMany
+    {
         return $this->hasMany(Room::class);
     }
 
-    public function amenities(): BelongsToMany {
+    public function amenities(): BelongsToMany
+    {
         return $this->belongsToMany(Amenity::class, 'amenity_room_category');
     }
 
-    public function media(): HasMany {
+    public function media(): HasMany
+    {
         return $this->hasMany(Media::class);
     }
 
-    public function prices(): HasMany {
+    public function prices(): HasMany
+    {
         return $this->hasMany(RatePrice::class, 'room_category_id');
     }
 
-    public function overrides(): HasMany {
+    public function overrides(): HasMany
+    {
         return $this->hasMany(RateOverride::class, 'room_category_id');
     }
 
-    public function bookings(): HasMany {
+    public function bookings(): HasMany
+    {
         return $this->hasMany(Booking::class, 'room_category_id');
+    }
+
+    public function canAccommodate(int $adults, int $children): bool
+    {
+        // Считаем сколько мест занимают гости
+        // Каждые 2 ребёнка = 1 место, округляем вниз
+        $occupiedPlaces = $adults + (int) floor($children / 2);
+        // Максимум мест = базовая вместимость + дополнительная
+        $maxPlaces = $this->base_capacity + $this->extra_capacity;
+
+        return $occupiedPlaces <= $maxPlaces;
+    }
+
+    public function getAvailableRoomsCount(Carbon $checkIn, Carbon $checkOut, ?int $excludeBookingId = null): int
+    {
+        // Статусы при которых номер считается занятым
+        $activeStatuses = [
+            BookingStatusEnum::NEW->value,
+            BookingStatusEnum::CONFIRMED->value,
+            BookingStatusEnum::CHECKED_IN->value,
+        ];
+
+        // Общее количество активных номеров в категории
+        $totalActiveRooms = $this->rooms()
+            ->where('is_active', true)
+            ->count();
+
+        // Бронирования которые пересекаются с нашим периодом
+        // Формула пересечения: заезд брони < наш выезд И выезд брони > наш заезд
+        $overlappingBookings = $this->bookings()
+            ->whereHas('status', function ($query) use ($activeStatuses) {
+                $query->whereIn('slug', $activeStatuses);
+            })
+            ->where('check_in_date', '<', $checkOut)
+            ->where('check_out_date', '>', $checkIn)
+            ->when($excludeBookingId, fn($q) => $q->where('id', '!=', $excludeBookingId))
+            ->get();
+
+        $assignedCount = $overlappingBookings
+            ->whereNotNull('room_id')
+            ->count();
+
+        $unassignedCount = $overlappingBookings
+            ->whereNull('room_id')
+            ->count();
+
+        $available = $totalActiveRooms - $assignedCount - $unassignedCount;
+
+        // не может быть отрицательным
+        return max(0, $available);
+    }
+
+    public function hasAvailableRooms(Carbon $checkIn, Carbon $checkOut, ?int $excludeBookingId = null): bool
+    {
+        return $this->getAvailableRoomsCount($checkIn, $checkOut, $excludeBookingId) > 0;
+    }
+
+    public function getTotalRooms() {
+        return $this->rooms()->count();
+    }
+
+    public function getTotalActiveRooms() {
+        return $this->rooms()
+            ->where('is_active', true)
+            ->count();
     }
 }

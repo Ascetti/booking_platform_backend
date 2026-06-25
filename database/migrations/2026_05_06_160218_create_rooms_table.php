@@ -16,6 +16,7 @@ return new class extends Migration
             // $table->foreignId('hotel_id')->constrained()->cascadeOnDelete();
             $table->foreignId('room_category_id')->constrained()->cascadeOnDelete();
             $table->string('name');
+            $table->boolean('is_active')->default(true);
             $table->unique(['room_category_id', 'name']);
             $table->timestamps();
             $table->softDeletes();

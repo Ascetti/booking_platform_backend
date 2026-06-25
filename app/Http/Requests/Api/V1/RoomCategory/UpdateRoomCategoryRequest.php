@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\V1\RoomCategory;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateRoomCategoryRequest extends FormRequest
 {
@@ -22,8 +23,17 @@ class UpdateRoomCategoryRequest extends FormRequest
      */
     public function rules(): array
     {
+        $roomCategory = $this->route('room_category');
         return [
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'name' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('room_categories', 'name')
+                    ->where(fn($query) => $query->where('hotel_id', $roomCategory->hotel_id))
+                    ->ignore($roomCategory->id),
+            ],
             'area' => ['sometimes', 'required', 'integer', 'min:1'],
             'description' => ['sometimes', 'nullable', 'string', 'max:255'],
             'base_capacity' => ['sometimes', 'required', 'integer', 'min:1'],

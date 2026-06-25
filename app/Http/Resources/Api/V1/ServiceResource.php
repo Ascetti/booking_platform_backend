@@ -22,6 +22,7 @@ class ServiceResource extends JsonResource
             'price' => $this->price,
             'price_type' => $this->price_type->value,
             'price_type_label' => $this->price_type->label(),
+            'has_quantity'  => $this->price_type->hasQuantity(),
         ];
     }
 }

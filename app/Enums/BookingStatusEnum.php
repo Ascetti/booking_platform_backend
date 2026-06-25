@@ -10,5 +10,34 @@ enum BookingStatusEnum: string
     case CHECKED_OUT = 'checked_out';
     case CANCELLED = 'cancelled';
     case NO_SHOW = 'no_show';
-    case MAINTENANCE = 'maintenance';
+
+    public function label(): string
+    {
+        return match($this) {
+            self::NEW => 'new',
+            self::CONFIRMED => 'confirmed',
+            self::CHECKED_IN => 'checked in',
+            self::CHECKED_OUT => 'checked out',
+            self::CANCELLED => 'cancelled',
+            self::NO_SHOW => 'no show',
+        };
+    }
+
+    public function allowedTransitions(): array
+    {
+        return match($this) {
+            self::NEW        => [self::CONFIRMED, self::CANCELLED],
+            self::CONFIRMED  => [self::CHECKED_IN, self::CANCELLED, self::NO_SHOW],
+            self::CHECKED_IN => [self::CHECKED_OUT],
+            self::CHECKED_OUT => [],
+            self::CANCELLED  => [],
+            self::NO_SHOW    => [],
+        };
+    }
+
+    // Можно ли перейти в указанный статус
+    public function canTransitionTo(self $status): bool
+    {
+        return in_array($status, $this->allowedTransitions());
+    }
 }

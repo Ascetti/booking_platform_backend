@@ -8,7 +8,7 @@ use App\Http\Requests\Api\V1\Guest\UpdateGuestRequest;
 use App\Http\Resources\Api\V1\GuestResource;
 use App\Models\Guest;
 use App\Models\Hotel;
-use App\Services\GuestService;
+use App\Services\Reservation\GuestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
@@ -21,14 +21,24 @@ class GuestController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Hotel $hotel)
+    public function index(Request $request, Hotel $hotel)
     {
         Gate::authorize('viewAny', [Guest::class, $hotel]);
-        $guests = Guest::whereHas('bookings', function ($query) use ($hotel) {
-            $query->where('hotel_id', $hotel->id);
-        })
-        ->orderBy('last_name')
-        ->paginate(20);
+
+        $query = $hotel->guests()->orderBy('last_name');
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'ilike', "%{$search}%")
+                    ->orWhere('last_name', 'ilike', "%{$search}%")
+                    ->orWhere('phone', 'ilike', "%{$search}%")
+                    ->orWhere('email', 'ilike', "%{$search}%");
+            });
+        }
+
+        $guests = $query->with(['bookings'])->paginate($request->input('per_page', 6));
+
         return GuestResource::collection($guests);
     }
 
@@ -46,8 +56,9 @@ class GuestController extends Controller
     public function show(Guest $guest)
     {
         Gate::authorize('view', $guest);
-        $guest->loadCount('bookings');
-        return new GuestResource($guest);
+        return new GuestResource(
+            $guest->load('bookings')
+        );
     }
 
     /**
@@ -56,9 +67,8 @@ class GuestController extends Controller
     public function update(UpdateGuestRequest $request, Guest $guest)
     {
         Gate::authorize('update', $guest);
-        $data = $request->validated();
-        $updatedGuest = $this->guestService->update($guest, $data);
-        return new GuestResource($updatedGuest);
+        $guest = $this->guestService->update($guest, $request->validated());
+        return new GuestResource($guest);
     }
 
     /**

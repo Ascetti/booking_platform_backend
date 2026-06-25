@@ -32,7 +32,6 @@ class Service extends Model
     public function bookings(): BelongsToMany
     {
         return $this->belongsToMany(Booking::class, 'booking_service')
-            ->withPivot(['quantity', 'price_at_booking'])
-            ->withTimestamps();
+            ->withPivot(['quantity', 'price_at_booking']);
     }
 }

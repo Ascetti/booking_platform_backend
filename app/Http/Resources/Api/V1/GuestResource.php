@@ -7,36 +7,33 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class GuestResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
-        $isFromBooking = $this->pivot !== null;
-
         return [
-            'id' => $this->id,
-            'first_name' => $isFromBooking ? $this->pivot->first_name : $this->first_name,
-            'last_name' => $isFromBooking ? $this->pivot->last_name : $this->last_name,
-            'middle_name' => $this->middle_name,
-            'full_name' => trim(sprintf(
-                '%s %s %s',
-                $isFromBooking ? $this->pivot->last_name : $this->last_name,
-                $isFromBooking ? $this->pivot->first_name : $this->first_name,
-                $this->middle_name
-            )),
-            'email' => $isFromBooking ? $this->pivot->email : $this->email,
-            'phone' => $isFromBooking ? $this->pivot->phone : $this->phone,
-            'birth_date' => $this->birth_date?->format('Y-m-d'),
-            'document_type' => $this->document_type?->value,
+            'id'              => $this->id,
+            'hotel_id'        => $this->hotel_id,
+            'first_name'      => $this->first_name,
+            'last_name'       => $this->last_name,
+            'middle_name'     => $this->middle_name,
+            'email'           => $this->email,
+            'phone'           => $this->phone,
+            'birth_date'      => $this->birth_date?->format('Y-m-d'),
+            'document_type'   => $this->document_type,
             'document_number' => $this->document_number,
-            'is_primary' => $this->whenPivotLoaded('booking_guest', function () {
-                return (bool)$this->pivot->is_primary;
+
+            // История бронирований — только если загружена
+            'bookings' => $this->whenLoaded('bookings', function () {
+                return $this->bookings->map(fn($booking) => [
+                    'id'             => $booking->id,
+                    'check_in_date'  => $booking->check_in_date->format('Y-m-d'),
+                    'check_out_date' => $booking->check_out_date->format('Y-m-d'),
+                    'status'         => $booking->status->slug,
+                    'total_price'    => $booking->total_price,
+                ]);
             }),
-            'bookings' => BookingResource::collection($this->whenLoaded('bookings')),
-            'bookings_count' => $this->whenCounted('bookings'),
+
+            // 'created_at' => $this->created_at->format('Y-m-d H:i:s'),
+            // 'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
         ];
     }
 }

@@ -58,7 +58,7 @@ class RoomCategoryService
             $category->media->each(function ($media) {
                 app(MediaService::class)->deleteMedia($media);
             });
-            $category->rooms->each->delete();
+            $category->rooms()->delete();
             return $category->delete();
         });
     }

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers\Api\V1\RatePlan;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\RatePlan\StoreRatePlanRequest;
@@ -8,7 +8,7 @@ use App\Http\Requests\Api\V1\RatePlan\UpdateRatePlanRequest;
 use App\Http\Resources\Api\V1\RatePlanResource;
 use App\Models\Hotel;
 use App\Models\RatePlan;
-use App\Services\Hotel\RatePlanService;
+use App\Services\Pricing\RatePlanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 

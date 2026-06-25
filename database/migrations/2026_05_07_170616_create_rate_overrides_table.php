@@ -18,7 +18,7 @@ return new class extends Migration
             $table->date('date');
             $table->decimal('override_price', 12, 2)->nullable();
             $table->boolean('is_closed')->default(false);
-            $table->unsignedInteger('min_stay')->nullable();
+            // $table->unsignedInteger('min_stay')->nullable();
             $table->unique(['rate_plan_id', 'room_category_id', 'date']);
         });
     }

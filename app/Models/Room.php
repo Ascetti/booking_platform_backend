@@ -13,17 +13,26 @@ class Room extends Model
     /** @use HasFactory<\Database\Factories\RoomFactory> */
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['room_category_id', 'name'];
+    protected $fillable = ['room_category_id', 'name', 'is_active'];
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
 
     // public function hotel(): BelongsTo {
     //     return $this->belongsTo(Hotel::class);
     // }
 
-    public function category(): BelongsTo {
+    public function category(): BelongsTo
+    {
         return $this->belongsTo(RoomCategory::class, 'room_category_id');
     }
 
-    public function bookings(): HasMany {
+    public function bookings(): HasMany
+    {
         return $this->hasMany(Booking::class);
     }
 }

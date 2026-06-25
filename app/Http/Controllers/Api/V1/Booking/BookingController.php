@@ -4,67 +4,94 @@ namespace App\Http\Controllers\Api\V1\Booking;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Booking\StoreBookingRequest;
-use App\Http\Requests\Api\V1\Booking\UpdateBookingRequest;
 use App\Http\Resources\Api\V1\BookingResource;
 use App\Models\Booking;
 use App\Models\Hotel;
-use App\Services\Booking\BookingService;
+use App\Services\Reservation\ReservationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class BookingController extends Controller
 {
     public function __construct(
-        protected BookingService $bookingService
-    ) {} 
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Hotel $hotel)
+        protected ReservationService $reservationService
+    ) {}
+
+    public function index(Request $request, Hotel $hotel)
     {
-        Gate::authorize('vewAny', $hotel);
-        $bookings = $hotel->bookings()->get();
+        Gate::authorize('viewAny', [Booking::class, $hotel]);
+
+        $query = $hotel->bookings()
+            ->with(['status', 'category', 'room', 'plan', 'guests'])
+            ->orderBy('id', 'desc');
+
+        // Поиск по номеру брони, имени, фамилии, телефону, email гостя
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                // По номеру бронирования
+                if (is_numeric($search)) {
+                    $q->where('id', (int) $search);
+                }
+                // По данным гостя
+                $q->orWhereHas('guests', function ($gq) use ($search) {
+                    $gq->where('booking_guest.first_name', 'ilike', "%{$search}%")
+                        ->orWhere('booking_guest.last_name', 'ilike', "%{$search}%")
+                        ->orWhere('booking_guest.phone', 'ilike', "%{$search}%")
+                        ->orWhere('booking_guest.email', 'ilike', "%{$search}%");
+                });
+            });
+        }
+
+        // Фильтр по статусу
+        if ($request->filled('status')) {
+            $query->whereHas(
+                'status',
+                fn($q) =>
+                $q->where('slug', $request->input('status'))
+            );
+        }
+
+        // Фильтр по датам — бронирования пересекающиеся с периодом
+        if ($request->filled('date_from')) {
+            $query->where('check_out_date', '>', $request->input('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $query->where('check_in_date', '<', $request->input('date_to'));
+        }
+
+        $bookings = $query->paginate($request->input('per_page', 6));
+
         return BookingResource::collection($bookings);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(StoreBookingRequest $request, Hotel $hotel)
     {
         Gate::authorize('create', [Booking::class, $hotel]);
-        $data = $request->validated();
-        $booking = $this->bookingService->createBooking($hotel, $data);
+
+        $booking = $this->reservationService->create($hotel, $request->validated());
+
+        // return (new BookingResource($booking))
+        //     ->response()
+        //     ->setStatusCode(201);
         return new BookingResource($booking);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(Booking $booking)
     {
         Gate::authorize('view', $booking);
-        return new BookingResource($booking);
+
+        return new BookingResource(
+            $booking->load(['status', 'category', 'room', 'plan', 'guests', 'services'])
+        );
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateBookingRequest $request, Booking $booking)
-    {
-        Gate::authorize('update', $booking);
-        $data = $request->validated();
-        $booking = $this->bookingService->updateBooking($booking, $data);
-        return new BookingResource($booking);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Booking $booking)
     {
         Gate::authorize('delete', $booking);
-        $this->bookingService->deleteBooking($booking);
+
+        $this->reservationService->delete($booking);
+
         return response()->noContent();
     }
 }

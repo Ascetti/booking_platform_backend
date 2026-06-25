@@ -39,7 +39,7 @@ class RoomCategoryController extends Controller
         Gate::authorize('create', [RoomCategory::class, $hotel]);
         $data = $request->validated();
         $category = $this->roomCategoryService->createCategory($hotel, $data);
-        return new RoomCategoryResource($category->load(['amenities', 'media']));
+        return new RoomCategoryResource($category->load(['amenities', 'media', 'rooms'])->loadCount('rooms'));
     }
 
     /**

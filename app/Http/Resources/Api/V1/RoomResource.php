@@ -20,6 +20,7 @@ class RoomResource extends JsonResource
             // 'category' => new RoomCategoryResource($this->whenLoaded('category')),
             'category' => $this->room_category_id,
             'name' => $this->name,
+            'is_active' => $this->is_active,
         ];
     }
 }

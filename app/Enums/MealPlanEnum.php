@@ -13,11 +13,11 @@ enum MealPlanEnum: string
     public function label(): string
     {
         return match($this) {
-            self::RO => 'Room Only',
-            self::BB => 'Bed & Breakfast',
-            self::HB => 'Half Board',
-            self::FB => 'Full Board',
-            self::AI => 'All Inclusive',
+            self::RO => 'Без питания',
+            self::BB => 'Завтрак',
+            self::HB => 'Полупансион',
+            self::FB => 'Полный пансион',
+            self::AI => 'Все включено',
         };
     }
 }

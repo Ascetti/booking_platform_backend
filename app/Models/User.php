@@ -146,13 +146,6 @@ class User extends Authenticatable
             ->exists();
     }
 
-    // public function hasGlobalPermission(PermissionEnum $permission): bool
-    // {
-    //     return $this->roles()
-    //         ->whereHas('permissions', fn (Builder $query) => $query->where('slug', $permission->value))
-    //         ->exists();
-    // }
-
     public function hasGlobalPermission(PermissionEnum $permission): bool
     {
         return $this->roles()
@@ -175,12 +168,6 @@ class User extends Authenticatable
             ->whereHas('permissions', fn(Builder $query) => $query->where('slug', $permission->value))
             ->exists();
     }
-
-    // public function hasRole(RoleEnum $role) {
-    //     return $this->roles()
-    //         ->where('slug', $role->value)
-    //         ->exists();
-    // }
 
     public function hasRole(RoleEnum $role): bool
     {

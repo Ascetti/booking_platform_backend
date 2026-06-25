@@ -36,6 +36,9 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             AmenitySeeder::class,
             HotelSeeder::class,
+            BookingStatusSeeder::class,
+            RatePlanSeeder::class,
+            ServiceSeeder::class,
         ]);
 
         $platformAdminRole = Role::where('name', RoleEnum::PLATFORM_ADMIN->value)->first();
@@ -48,8 +51,7 @@ class DatabaseSeeder extends Seeder
         $platformAdmin = User::where('email', 'admin@platform.com')->first();
         $hotelAdmin1 = User::where('email', 'a1@platform.com')->first();
         $hotelAdmin2 = User::where('email', 'a2@platform.com')->first();
-        $multiAdmin =User::where('email', 'multi@platform.com')->first();
-
+        $multiAdmin = User::where('email', 'multi@platform.com')->first();
 
         $this->staffService->assignRole($platformAdmin->id, $platformAdminRole->id, null);
         $this->staffService->assignRole($hotelAdmin1->id, $hotelAdminRole->id, $hotelA->id);

@@ -77,6 +77,10 @@ class Hotel extends Model
         return $this->hasMany(Booking::class);
     }
 
+    public function guests(): HasMany {
+        return $this->hasMany(Guest::class);
+    }
+
     public function scopeAccessibleBy(Builder $query, User $user): Builder
     {
         if ($user->isPlatformStaff()) {

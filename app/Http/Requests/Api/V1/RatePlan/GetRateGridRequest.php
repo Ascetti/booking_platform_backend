@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Requests\Api\V1\Booking;
+namespace App\Http\Requests\Api\V1\RatePlan;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateBookingStatusRequest extends FormRequest
+class GetRateGridRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,8 +23,8 @@ class UpdateBookingStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status_id' => ['sometimes', 'exists:booking_statuses,id'],
-            'comment' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'date_from' => ['required', 'date'],
+            'date_to'   => ['required', 'date', 'after:date_from'],
         ];
     }
 }

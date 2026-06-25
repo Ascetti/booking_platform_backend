@@ -31,8 +31,8 @@ class UpdateGuestRequest extends FormRequest
             'birth_date' => ['sometimes', 'nullable', 'date', 'before:today'],
             'document_type' => ['sometimes', 'nullable', Rule::enum(DocumentTypeEnum::class)],
             'document_number' => ['sometimes', 'nullable', 'string', 'max:50'],
-            'email' => ['sometimes', 'email', 'max:255'],
-            'phone' => ['sometimes', 'string', 'max:50'],
+            'email' => ['sometimes', 'nullable', 'email', 'max:255'],
+            'phone' => ['sometimes', 'nullable', 'max:50'],
         ];
     }
 }

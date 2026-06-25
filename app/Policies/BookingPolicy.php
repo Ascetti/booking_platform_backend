@@ -15,7 +15,10 @@ class BookingPolicy extends BasePolicy
      */
     public function viewAny(User $user, Hotel $hotel): bool
     {
-        return $user->hasPermission(PermissionEnum::BOOKINGS_VIEW, $hotel->id);
+        if ($user->isPlatformStaff()) {
+            return $user->hasGlobalPermission(PermissionEnum::BOOKINGS_VIEW);
+        }
+        return $user->hasHotelPermission(PermissionEnum::BOOKINGS_VIEW, $hotel->id);
     }
 
     /**
@@ -23,7 +26,10 @@ class BookingPolicy extends BasePolicy
      */
     public function view(User $user, Booking $booking): bool
     {
-        return $user->hasPermission(PermissionEnum::BOOKINGS_VIEW, $booking->hotel_id);
+        if ($user->isPlatformStaff()) {
+            return $user->hasGlobalPermission(PermissionEnum::BOOKINGS_VIEW);
+        }
+        return $user->hasHotelPermission(PermissionEnum::BOOKINGS_VIEW, $booking->hotel_id);
     }
 
     /**
@@ -31,7 +37,10 @@ class BookingPolicy extends BasePolicy
      */
     public function create(User $user, Hotel $hotel): bool
     {
-        return $user->hasPermission(PermissionEnum::BOOKINGS_MANAGE, $hotel->id);
+        if ($user->isPlatformStaff()) {
+            return $user->hasGlobalPermission(PermissionEnum::BOOKINGS_MANAGE);
+        }
+        return $user->hasHotelPermission(PermissionEnum::BOOKINGS_MANAGE, $hotel->id);
     }
 
     /**
@@ -39,7 +48,10 @@ class BookingPolicy extends BasePolicy
      */
     public function update(User $user, Booking $booking): bool
     {
-        return $user->hasPermission(PermissionEnum::BOOKINGS_MANAGE, $booking->hotel_id);
+        if ($user->isPlatformStaff()) {
+            return $user->hasGlobalPermission(PermissionEnum::BOOKINGS_MANAGE);
+        }
+        return $user->hasHotelPermission(PermissionEnum::BOOKINGS_MANAGE, $booking->hotel_id);
     }
 
     /**
@@ -47,7 +59,10 @@ class BookingPolicy extends BasePolicy
      */
     public function delete(User $user, Booking $booking): bool
     {
-        return $user->hasPermission(PermissionEnum::BOOKINGS_MANAGE, $booking->hotel_id);
+        if ($user->isPlatformStaff()) {
+            return $user->hasGlobalPermission(PermissionEnum::BOOKINGS_MANAGE);
+        }
+        return $user->hasHotelPermission(PermissionEnum::BOOKINGS_MANAGE, $booking->hotel_id);
     }
 
     /**
