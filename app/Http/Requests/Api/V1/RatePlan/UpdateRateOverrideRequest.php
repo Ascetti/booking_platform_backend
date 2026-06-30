@@ -23,7 +23,10 @@ class UpdateRateOverrideRequest extends FormRequest
      */
     public function rules(): array
     {
-        $validCategoryIds = \App\Models\RatePrice::where('rate_plan_id', $this->route('rate_plan')->id)
+        $ratePlan = $this->route('rate_plan');
+        $sourcePlanId = $ratePlan->parent_id ?? $ratePlan->id;
+
+        $validCategoryIds = \App\Models\RatePrice::where('rate_plan_id', $sourcePlanId)
             ->distinct()
             ->pluck('room_category_id')
             ->toArray();
@@ -34,7 +37,7 @@ class UpdateRateOverrideRequest extends FormRequest
             'room_categories'   => ['required', 'array', 'min:1'],
             'room_categories.*' => ['integer', Rule::in($validCategoryIds)],
             'override_price'      => ['nullable', 'numeric', 'min:0'],
-            'is_closed'           => ['sometimes', 'boolean'],
+            'is_closed'           => ['required', 'boolean'],
         ];
     }
 }

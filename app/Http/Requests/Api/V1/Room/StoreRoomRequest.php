@@ -34,6 +34,7 @@ class StoreRoomRequest extends FormRequest
                     fn($query) => $query->where('room_category_id', $categoryId)
                 ),
             ],
+            'is_active' => ['sometimes', 'required', 'boolean'],
             'names' => ['required_without:name', 'array', 'min:1'],
             'names.*' => [
                 'distinct',

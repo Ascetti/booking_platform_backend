@@ -18,7 +18,7 @@ class UpdateBookingRoomRequest extends FormRequest
 
         return [
             'room_id' => [
-                'required',
+                'nullable',
                 'integer',
                 // Номер должен принадлежать категории бронирования
                 Rule::exists('rooms', 'id')

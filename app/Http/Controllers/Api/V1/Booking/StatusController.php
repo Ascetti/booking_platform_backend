@@ -24,11 +24,11 @@ class StatusController extends Controller
         $status = BookingStatusEnum::from($request->validated()['status']);
 
         $booking = match($status) {
+            BookingStatusEnum::NEW        => $this->reservationService->restore($booking),
             BookingStatusEnum::CONFIRMED  => $this->reservationService->confirm($booking),
             BookingStatusEnum::CANCELLED  => $this->reservationService->cancel($booking),
             BookingStatusEnum::CHECKED_IN => $this->reservationService->checkIn($booking),
             BookingStatusEnum::CHECKED_OUT => $this->reservationService->checkOut($booking),
-            BookingStatusEnum::NO_SHOW     => $this->reservationService->noShow($booking),
             default => throw new UnprocessableEntityHttpException(
                 "Cannot manually set status to '{$status->value}'."
             ),

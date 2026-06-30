@@ -141,21 +141,15 @@ class ReservationService
 			}
 
 			// Шаг 7 — привязываем услуги со снимком цен
+			$nights = $checkIn->diffInDays($checkOut);
 			foreach ($servicesForCalculation as $item) {
 				$service  = $item['service'];
 				$quantity = $item['quantity'];
-
-				// Считаем цену этой услуги для снимка
-				$nights = $checkIn->diffInDays($checkOut);
-				$servicePrice = $this->pricingService->calculateServicePrice(
-					$service,
-					$quantity,
-					$nights,
-				);
+				$unitPrice = (float) $service->price;
 
 				$booking->services()->attach($service->id, [
 					'quantity'         => $quantity,
-					'price_at_booking' => $servicePrice,
+					'price_at_booking' => $unitPrice,
 				]);
 			}
 
@@ -169,8 +163,7 @@ class ReservationService
 				'services',
 			]);
 		});
-		// Log::info('About to dispatch BookingCreated', ['booking_id' => $booking->id]);
-		// BookingCreated::dispatch($booking);
+		BookingCreated::dispatch($booking);
 		return $booking;
 	}
 
@@ -198,8 +191,7 @@ class ReservationService
 	public function cancel(Booking $booking): Booking
 	{
 		$this->transitionStatus($booking, BookingStatusEnum::CANCELLED);
-		BookingStatusChanged::dispatch($booking);
-		return $booking->load([
+		$booking->load([
 			'status',
 			'category',
 			'room',
@@ -207,6 +199,10 @@ class ReservationService
 			'guests',
 			'services',
 		]);
+
+		BookingDetailsChanged::dispatch($booking);
+
+		return $booking;
 	}
 
 	/**
@@ -221,9 +217,17 @@ class ReservationService
 			);
 		}
 
+		$today = now()->startOfDay();
+		$checkInDate = Carbon::parse($booking->check_in_date)->startOfDay();
+
+		if ($checkInDate->gt($today)) {
+			throw new UnprocessableEntityHttpException(
+				'Cannot check in before the arrival date.'
+			);
+		}
+
 		$this->transitionStatus($booking, BookingStatusEnum::CHECKED_IN);
-		BookingStatusChanged::dispatch($booking);
-		return $booking->load([
+		$booking->load([
 			'status',
 			'category',
 			'room',
@@ -231,6 +235,10 @@ class ReservationService
 			'guests',
 			'services',
 		]);
+
+		BookingDetailsChanged::dispatch($booking);
+
+		return $booking;
 	}
 
 	/**
@@ -239,8 +247,7 @@ class ReservationService
 	public function checkOut(Booking $booking): Booking
 	{
 		$this->transitionStatus($booking, BookingStatusEnum::CHECKED_OUT);
-		BookingStatusChanged::dispatch($booking);
-		return $booking->load([
+		$booking->load([
 			'status',
 			'category',
 			'room',
@@ -248,42 +255,39 @@ class ReservationService
 			'guests',
 			'services',
 		]);
-	}
 
-	/**
-	 * Гость не приехал.
-	 */
-	public function noShow(Booking $booking): Booking
-	{
-		$this->transitionStatus($booking, BookingStatusEnum::NO_SHOW);
-		// BookingStatusChanged::dispatch($booking);
-		return $booking->load([
-			'status',
-			'category',
-			'room',
-			'plan',
-			'guests',
-			'services',
-		]);
+		BookingDetailsChanged::dispatch($booking);
+
+		return $booking;
 	}
 
 	/**
 	 * Назначить конкретный номер бронированию.
-	 * Можно делать отдельно от заселения.
 	 */
-	public function assignRoom(Booking $booking, int $roomId): Booking
+	public function assignRoom(Booking $booking, ?int $roomId): Booking
 	{
 		// Бронирование должно быть активным
-		if (!$booking->isModifiable()) {
+		if ($booking->isCheckedOut() || $booking->isCancelled()) {
 			throw new UnprocessableEntityHttpException(
-				'Cannot assign room to a booking that is not modifiable.'
+				'Cannot assign room to a completed or cancelled booking.'
 			);
+		}
+
+		if ($roomId === null) {
+			$booking->update(['room_id' => null]);
+			BookingDetailsChanged::dispatch($booking);
+			return $booking->load([
+				'status',
+				'category',
+				'room',
+				'plan',
+				'guests',
+				'services',
+			]);
 		}
 
 		$category = $booking->category;
 
-		// Проверяем номер через AvailabilityService
-		// Используем приватный метод через рефлексию — или сделаем его публичным
 		$room = $category->rooms()
 			->where('id', $roomId)
 			->where('is_active', true)
@@ -325,15 +329,45 @@ class ReservationService
 		return $booking;
 	}
 
+	public function restore(Booking $booking): Booking
+	{
+		// Проверяем доступность — пока бронь была отменена могли занять место
+		$this->availabilityService->validateBookingData(
+			hotel: $booking->hotel,
+			category: $booking->category,
+			ratePlan: $booking->plan,
+			checkIn: Carbon::parse($booking->check_in_date),
+			checkOut: Carbon::parse($booking->check_out_date),
+			adults: $booking->adults_count,
+			children: $booking->children_count,
+			roomId: null, // номер не проверяем — он мог уже занят
+			excludeBookingId: $booking->id,
+		);
+
+		// Сбрасываем номер — он мог стать недоступен
+		$booking->update(['room_id' => null]);
+
+		$this->transitionStatus($booking, BookingStatusEnum::NEW);
+
+		return $booking->load([
+			'status',
+			'category',
+			'room',
+			'plan',
+			'guests',
+			'services',
+		]);
+	}
+
 	/**
 	 * Удалить бронирование.
-	 * Только отменённые или no_show брони можно удалять.
+	 * Только отменённые брони можно удалять.
 	 */
 	public function delete(Booking $booking): void
 	{
-		if (!$booking->isCancelled() && !$booking->isNoShow()) {
+		if (!$booking->isCancelled()) {
 			throw new ConflictHttpException(
-				'Only cancelled or no-show bookings can be deleted.'
+				'Only cancelled bookings can be deleted.'
 			);
 		}
 
@@ -376,30 +410,38 @@ class ReservationService
 	public function updateStayDetails(Booking $booking, array $data): Booking
 	{
 		return DB::transaction(function () use ($booking, $data) {
-			// Бронирование должно быть изменяемым
 			if (!$booking->isModifiable()) {
 				throw new UnprocessableEntityHttpException(
-					'Cannot modify a booking that is checked in, checked out, cancelled or no-show.'
+					'Cannot modify a booking that is checked in, checked out, cancelled.'
 				);
 			}
 
-			// Берём новые значения или оставляем старые если не переданы
 			$checkIn  = Carbon::parse($data['check_in_date'] ?? $booking->check_in_date);
 			$checkOut = Carbon::parse($data['check_out_date'] ?? $booking->check_out_date);
 			$adults   = $data['adults_count'] ?? $booking->adults_count;
 			$children = $data['children_count'] ?? $booking->children_count;
 
-			// Если поменялась категория — загружаем новую, иначе берём текущую
 			$category = isset($data['room_category_id'])
 				? RoomCategory::findOrFail($data['room_category_id'])
 				: $booking->category;
 
-			// Если поменялся тариф — загружаем новый, иначе берём текущий
 			$ratePlan = isset($data['rate_plan_id'])
 				? RatePlan::findOrFail($data['rate_plan_id'])
 				: $booking->plan;
 
-			// Проверяем доступность с новыми данными
+			// Определяем room_id
+			// Если категория поменялась — сбрасываем номер
+			// Если категория та же — берём из запроса если передан, иначе текущий
+			$categoryChanged = isset($data['room_category_id']) && (int)$data['room_category_id'] !== $booking->room_category_id;
+
+			if ($categoryChanged) {
+				$roomId = null;
+			} elseif (array_key_exists('room_id', $data)) {
+				$roomId = $data['room_id']; // может быть null если передали явно
+			} else {
+				$roomId = $booking->room_id;
+			}
+
 			$this->availabilityService->validateBookingData(
 				hotel: $booking->hotel,
 				category: $category,
@@ -408,11 +450,10 @@ class ReservationService
 				checkOut: $checkOut,
 				adults: $adults,
 				children: $children,
-				roomId: null,
+				roomId: $roomId,
 				excludeBookingId: $booking->id,
 			);
 
-			// Пересчитываем цену с новыми данными
 			$roomPrice = $this->pricingService->calculateRoomPrice(
 				$ratePlan,
 				$category,
@@ -420,13 +461,12 @@ class ReservationService
 				$checkOut
 			);
 
-			// Пересчитываем услуги с новыми данными
 			$nights = $checkIn->diffInDays($checkOut);
 			$servicesTotal = 0.0;
-
 			foreach ($booking->services as $service) {
 				$servicesTotal += $this->pricingService->calculateServicePrice(
-					$service,
+					$service->price_type,
+					(float) $service->pivot->price_at_booking,
 					$service->pivot->quantity,
 					$nights,
 				);
@@ -434,10 +474,9 @@ class ReservationService
 
 			$totalPrice = round($roomPrice + $servicesTotal, 2);
 
-			// Обновляем бронирование
 			$booking->update([
 				'room_category_id'      => $category->id,
-				'room_id'               => null,
+				'room_id'               => $roomId,
 				'rate_plan_id'          => $ratePlan->id,
 				'check_in_date'         => $checkIn,
 				'check_out_date'        => $checkOut,
@@ -457,44 +496,29 @@ class ReservationService
 			]);
 
 			BookingDetailsChanged::dispatch($booking);
-
 			return $booking;
 		});
 	}
 
 	/**
 	 * Обновить состав гостей бронирования.
-	 * Заменяем весь список гостей новым.
 	 * Заказчик (is_primary) обязателен.
 	 */
 	public function updateGuests(Booking $booking, array $data): Booking
 	{
 		return DB::transaction(function () use ($booking, $data) {
-			// Бронирование должно быть изменяемым
 			if (!$booking->isModifiable()) {
 				throw new UnprocessableEntityHttpException(
 					'Cannot modify guests of a booking that is checked in, checked out, cancelled or no-show.'
 				);
 			}
 
-			// Отвязываем всех текущих гостей
-			// Это удаляет записи из booking_guest но не удаляет самих гостей
 			$booking->guests()->detach();
 
-			// Привязываем новый список гостей
 			foreach ($data['guests'] as $guestData) {
-				$isPrimary = $guestData['is_primary'] ?? false;
-
-				// Находим или создаём гостя
-				$guest = $this->guestService->findOrCreate($booking->hotel, $guestData);
-
-				// Привязываем со снимком данных
+				$guest = $this->guestService->updateOrCreate($booking->hotel, $guestData);
 				$booking->guests()->attach($guest->id, [
-					'is_primary' => $isPrimary,
-					'first_name' => $guestData['first_name'],
-					'last_name'  => $guestData['last_name'],
-					'email'      => $guestData['email'] ?? null,
-					'phone'      => $guestData['phone'] ?? null,
+					'is_primary' => $guestData['is_primary'],
 				]);
 			}
 
@@ -508,7 +532,6 @@ class ReservationService
 			]);
 
 			BookingDetailsChanged::dispatch($booking);
-
 			return $booking;
 		});
 	}
@@ -516,36 +539,19 @@ class ReservationService
 	public function updateServices(Booking $booking, array $data): Booking
 	{
 		return DB::transaction(function () use ($booking, $data) {
-			// Нельзя менять услуги у завершённых или отменённых броней
-			// Но при checked_in можно — гость может добавить услугу во время проживания
-			if ($booking->isCheckedOut() || $booking->isCancelled() || $booking->isNoShow()) {
+			if ($booking->isCheckedOut() || $booking->isCancelled()) {
 				throw new UnprocessableEntityHttpException(
 					'Cannot modify services of a completed or cancelled booking.'
 				);
 			}
 
-			$nights   = $booking->calculateNights();
-			$adults   = $booking->adults_count;
-			$children = $booking->children_count;
+			$nights = $booking->calculateNights();
 
-			// Новый список услуг из запроса
-			// Например: [{id: 1, quantity: 2}, {id: 3, quantity: 1}]
-			$newServices = collect($data['services'] ?? []);
-
-			// Текущие услуги брони сгруппированные по id
-			// keyBy('id') делает ключом коллекции id услуги
-			// Было: [{id:1, ...}, {id:2, ...}]
-			// Стало: [1 => {id:1, ...}, 2 => {id:2, ...}]
-			// Это нужно чтобы быстро проверить — была ли услуга уже в брони
+			$newServices     = collect($data['services'] ?? []);
 			$currentServices = $booking->services->keyBy('id');
+			$newServiceIds   = $newServices->pluck('id');
 
-			// Собираем id из нового списка — просто массив чисел [1, 3]
-			$newServiceIds = $newServices->pluck('id');
-
-			// Находим услуги которые были но их нет в новом списке — их надо удалить
-			// keys() — берём текущие id: [1, 2]
-			// diff($newServiceIds) — вычитаем новые id [1, 3], остаётся [2]
-			// Значит услугу 2 удаляем
+			// Удаляем услуги которых нет в новом списке
 			$toRemove = $currentServices->keys()->diff($newServiceIds);
 			if ($toRemove->isNotEmpty()) {
 				$booking->services()->detach($toRemove->toArray());
@@ -553,55 +559,53 @@ class ReservationService
 
 			$servicesTotal = 0.0;
 
-			// Проходим по каждой услуге из нового списка
 			foreach ($newServices as $serviceItem) {
 				$serviceId = $serviceItem['id'];
 				$quantity  = $serviceItem['quantity'];
 
 				if ($currentServices->has($serviceId)) {
-					// Услуга уже была в брони — берём зафиксированную цену
-					// НЕ пересчитываем — цена зафиксирована на момент добавления
+					// Услуга уже была — используем зафиксированную цену за единицу
 					$existingService = $currentServices->get($serviceId);
-					$priceAtBooking  = (float) $existingService->pivot->price_at_booking;
+					$unitPrice       = (float) $existingService->pivot->price_at_booking;
 
-					// Если quantity изменилось — обновляем только его
-					// updateExistingPivot обновляет запись в сводной таблице по id услуги
 					if ($existingService->pivot->quantity !== $quantity) {
 						$booking->services()->updateExistingPivot($serviceId, [
 							'quantity' => $quantity,
 						]);
 					}
 
-					// Итого по этой услуге = зафиксированная цена × новое количество
-					$servicesTotal += $priceAtBooking * $quantity;
+					$servicesTotal += $this->pricingService->calculateServicePrice(
+						$existingService->price_type,
+						$unitPrice,
+						$quantity,
+						$nights,
+					);
 				} else {
-					// Новая услуга которой раньше не было — считаем цену сейчас
-					$service = Service::findOrFail($serviceId);
-
+					// Новая услуга — берём текущую цену из модели и фиксируем
+					$service   = Service::findOrFail($serviceId);
 					if ($service->hotel_id !== $booking->hotel_id) {
 						throw new UnprocessableEntityHttpException(
 							"Service {$service->id} does not belong to this hotel."
 						);
 					}
 
-					// Считаем цену на текущий момент и фиксируем
+					$unitPrice    = (float) $service->price;
 					$servicePrice = $this->pricingService->calculateServicePrice(
-						$service,
+						$service->price_type,
+						$unitPrice,
 						$quantity,
 						$nights,
 					);
 
-					// Привязываем новую услугу со снимком цены
 					$booking->services()->attach($serviceId, [
 						'quantity'         => $quantity,
-						'price_at_booking' => $servicePrice,
+						'price_at_booking' => $unitPrice,
 					]);
 
 					$servicesTotal += $servicePrice;
 				}
 			}
 
-			// Пересчитываем итог — стоимость номера не меняется
 			$totalPrice = round($booking->room_price_at_booking + $servicesTotal, 2);
 			$booking->update(['total_price' => $totalPrice]);
 
@@ -615,7 +619,6 @@ class ReservationService
 			]);
 
 			BookingDetailsChanged::dispatch($booking);
-
 			return $booking;
 		});
 	}

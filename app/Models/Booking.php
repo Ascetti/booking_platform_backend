@@ -127,11 +127,6 @@ class Booking extends Model
         return $this->status->slug === BookingStatusEnum::CANCELLED->value;
     }
 
-    public function isNoShow(): bool
-    {
-        return $this->status->slug === BookingStatusEnum::NO_SHOW->value;
-    }
-
     // Можно ли изменить бронирование
     public function isModifiable(): bool
     {

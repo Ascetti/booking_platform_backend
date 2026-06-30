@@ -18,7 +18,7 @@ class PublicAvailabilityController extends Controller
     {
         $data = $request->validated();
 
-        $categories = $this->availabilityService->getAvailableCategories(
+        $availability = $this->availabilityService->getPublicAvailability(
             hotel: $hotel,
             checkIn: Carbon::parse($data['check_in_date']),
             checkOut: Carbon::parse($data['check_out_date']),
@@ -26,6 +26,6 @@ class PublicAvailabilityController extends Controller
             children: $data['children_count'],
         );
 
-        return response()->json(['data' => $categories]);
+        return response()->json(['data' => $availability]);
     }
 }

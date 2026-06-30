@@ -60,13 +60,19 @@ class Bitrix24Adapter
 	 */
 	private function createPipeline(): ?int
 	{
-		$response = $this->call('crm.dealcategory.add', [
+		$response = $this->call('crm.category.add', [
+			'entityTypeId' => 2, // 2 = сделки
 			'fields' => [
-				'NAME' => 'Бронирования отеля',
+				'name'      => 'Бронирования отеля',
+				'isDefault' => 'N',
 			],
 		]);
 
-		return $response ? (int) $response['result']['ID'] : null;
+		if (!$response) {
+			return null;
+		}
+
+		return (int) ($response['result']['category']['id'] ?? null);
 	}
 
 	/**
@@ -75,36 +81,79 @@ class Bitrix24Adapter
 	 */
 	private function setupStages(int $pipelineId): array
 	{
-		$stagesToCreate = [
-			'new'         => 'Новое бронирование',
-			'confirmed'   => 'Подтверждено',
-			'checked_in'  => 'Гость заселён',
-			'checked_out' => 'Завершено (выселен)',
-			'cancelled'   => 'Отменено',
-		];
+		$entityId = "DEAL_STAGE_{$pipelineId}";
+
+		$existing = $this->call('crm.status.list', [
+			'filter' => ['ENTITY_ID' => $entityId],
+		]);
 
 		$stageMapping = [];
-		$sort = 10;
+		$systemStages = [];
 
-		foreach ($stagesToCreate as $ourStatus => $name) {
+		if ($existing && !empty($existing['result'])) {
+			foreach ($existing['result'] as $stage) {
+				if (($stage['SYSTEM'] ?? 'N') === 'Y') {
+					// Запоминаем системные стадии по семантике
+					$semantics = $stage['SEMANTICS'] ?? 'process';
+					$systemStages[$semantics] = $stage;
+				} else {
+					// Удаляем несистемные дефолтные
+					$this->call('crm.status.delete', ['id' => $stage['ID']]);
+				}
+			}
+		}
+
+		// Переименовываем системные стадии под наши
+		// process = начальная стадия → "Новое бронирование"
+		if (isset($systemStages['process'])) {
+			$this->call('crm.status.update', [
+				'id'     => $systemStages['process']['ID'],
+				'fields' => ['NAME' => 'Новое бронирование'],
+			]);
+			$stageMapping['new'] = $systemStages['process']['STATUS_ID'];
+		}
+
+		// S = успешно → "Завершено (выселен)"
+		if (isset($systemStages['S'])) {
+			$this->call('crm.status.update', [
+				'id'     => $systemStages['S']['ID'],
+				'fields' => ['NAME' => 'Завершено (выселен)'],
+			]);
+			$stageMapping['checked_out'] = $systemStages['S']['STATUS_ID'];
+		}
+
+		// F = провалено → "Отменено"
+		if (isset($systemStages['F'])) {
+			$this->call('crm.status.update', [
+				'id'     => $systemStages['F']['ID'],
+				'fields' => ['NAME' => 'Отменено'],
+			]);
+			$stageMapping['cancelled'] = $systemStages['F']['STATUS_ID'];
+		}
+
+		// Добавляем оставшиеся наши стадии
+		$stagesToCreate = [
+			'confirmed'  => ['name' => 'Подтверждено',  'sort' => 20],
+			'checked_in' => ['name' => 'Гость заселён', 'sort' => 30],
+		];
+
+		foreach ($stagesToCreate as $ourStatus => $stage) {
+			$statusId = 'HOTEL_' . strtoupper($ourStatus);
+
 			$response = $this->call('crm.status.add', [
 				'fields' => [
-					'ENTITY_ID' => "DEAL_STAGE_{$pipelineId}",
-					'NAME'      => $name,
-					'SORT'      => $sort,
-					'SEMANTICS' => match ($ourStatus) {
-						'checked_out' => 'S',
-						'cancelled'   => 'F',
-						default       => null,
-					},
+					'ENTITY_ID' => $entityId,
+					'STATUS_ID' => $statusId,
+					'NAME'      => $stage['name'],
+					'SORT'      => $stage['sort'],
+					'SEMANTICS' => null,
 				],
 			]);
 
-			if ($response) {
-				$stageMapping[$ourStatus] = $response['result'];
+			if ($response && isset($response['result'])) {
+				// Формируем полный STAGE_ID как C{pipelineId}:{STATUS_ID}
+				$stageMapping[$ourStatus] = "C{$pipelineId}:{$statusId}";
 			}
-
-			$sort += 10;
 		}
 
 		return $stageMapping;
@@ -116,24 +165,25 @@ class Bitrix24Adapter
 	private function setupDealFields(): void
 	{
 		$fields = [
-			['FIELD_NAME' => 'UF_HOTEL_NAME',     'LABEL' => 'Отель',              'TYPE' => 'string'],
-			['FIELD_NAME' => 'UF_CHECK_IN_DATE',  'LABEL' => 'Дата заезда',        'TYPE' => 'date'],
-			['FIELD_NAME' => 'UF_CHECK_OUT_DATE', 'LABEL' => 'Дата выезда',        'TYPE' => 'date'],
-			['FIELD_NAME' => 'UF_ROOM_CATEGORY',  'LABEL' => 'Категория номера',   'TYPE' => 'string'],
-			['FIELD_NAME' => 'UF_ROOM',           'LABEL' => 'Номер',              'TYPE' => 'string'],
-			['FIELD_NAME' => 'UF_RATE_PLAN',      'LABEL' => 'Тариф',              'TYPE' => 'string'],
-			['FIELD_NAME' => 'UF_ADULTS_COUNT',   'LABEL' => 'Взрослых',           'TYPE' => 'integer'],
-			['FIELD_NAME' => 'UF_CHILDREN_COUNT', 'LABEL' => 'Детей',              'TYPE' => 'integer'],
-			['FIELD_NAME' => 'UF_SERVICES',       'LABEL' => 'Доп. услуги',        'TYPE' => 'string'],
-			['FIELD_NAME' => 'UF_BOOKING_ID',     'LABEL' => 'ID бронирования',    'TYPE' => 'integer'],
+			['FIELD_NAME' => 'HOTEL_NAME',     'LABEL' => 'Отель',              'TYPE' => 'string'],
+			['FIELD_NAME' => 'CHECK_IN_DATE',  'LABEL' => 'Дата заезда',        'TYPE' => 'date'],
+			['FIELD_NAME' => 'CHECK_OUT_DATE', 'LABEL' => 'Дата выезда',        'TYPE' => 'date'],
+			['FIELD_NAME' => 'ROOM_CATEGORY',  'LABEL' => 'Категория номера',   'TYPE' => 'string'],
+			['FIELD_NAME' => 'ROOM',           'LABEL' => 'Номер',              'TYPE' => 'string'],
+			['FIELD_NAME' => 'RATE_PLAN',      'LABEL' => 'Тариф',              'TYPE' => 'string'],
+			['FIELD_NAME' => 'ADULTS_COUNT',   'LABEL' => 'Кол-во взрослых',           'TYPE' => 'integer'],
+			['FIELD_NAME' => 'CHILDREN_COUNT', 'LABEL' => 'Кол-во детей',              'TYPE' => 'integer'],
+			['FIELD_NAME' => 'SERVICES',       'LABEL' => 'Доп. услуги',        'TYPE' => 'string'],
+			['FIELD_NAME' => 'BOOKING_ID',     'LABEL' => 'Номер бронирования',    'TYPE' => 'integer'],
 		];
 
 		foreach ($fields as $field) {
 			$this->call('crm.deal.userfield.add', [
-				'FIELD_NAME'        => $field['FIELD_NAME'],
-				'EDIT_FORM_LABEL'   => ['ru' => $field['LABEL']],
-				'LIST_COLUMN_LABEL' => ['ru' => $field['LABEL']],
-				'USER_TYPE_ID'      => $field['TYPE'],
+				'fields' => [
+					'LABEL'   => ['ru' => $field['LABEL']],
+					'FIELD_NAME'        => $field['FIELD_NAME'],
+					'USER_TYPE_ID'      => $field['TYPE'],
+				]
 			]);
 		}
 	}
@@ -144,16 +194,17 @@ class Bitrix24Adapter
 	private function setupContactFields(): void
 	{
 		$fields = [
-			['FIELD_NAME' => 'UF_DOCUMENT_TYPE',   'LABEL' => 'Тип документа',   'TYPE' => 'string'],
-			['FIELD_NAME' => 'UF_DOCUMENT_NUMBER', 'LABEL' => 'Номер документа', 'TYPE' => 'string'],
+			['FIELD_NAME' => 'DOCUMENT_TYPE',   'LABEL' => 'Тип документа',   'TYPE' => 'string'],
+			['FIELD_NAME' => 'DOCUMENT_NUMBER', 'LABEL' => 'Номер документа', 'TYPE' => 'string'],
 		];
 
 		foreach ($fields as $field) {
 			$this->call('crm.contact.userfield.add', [
-				'FIELD_NAME'        => $field['FIELD_NAME'],
-				'EDIT_FORM_LABEL'   => ['ru' => $field['LABEL']],
-				'LIST_COLUMN_LABEL' => ['ru' => $field['LABEL']],
-				'USER_TYPE_ID'      => $field['TYPE'],
+				'fields' => [
+					'LABEL'   => ['ru' => $field['LABEL']],
+					'FIELD_NAME'        => $field['FIELD_NAME'],
+					'USER_TYPE_ID'      => $field['TYPE'],
+				]
 			]);
 		}
 	}
@@ -244,7 +295,7 @@ class Bitrix24Adapter
 		}
 
 		if ($guest->document_type) {
-			$fields['UF_CRM_DOCUMENT_TYPE'] = $guest->document_type->value ?? (string) $guest->document_type;
+			$fields['UF_CRM_DOCUMENT_TYPE'] = $guest->document_type->label();
 		}
 
 		if ($guest->document_number) {
@@ -307,7 +358,7 @@ class Bitrix24Adapter
 		})->implode(', ');
 
 		$fields = [
-			'TITLE'                  => "Бронирование #{$booking->id} — {$guest->pivot->first_name} {$guest->pivot->last_name}",
+			'TITLE'                  => "Бронирование #{$booking->id}",
 			'OPPORTUNITY'            => $booking->total_price,
 			'CURRENCY_ID'            => 'RUB',
 			'STAGE_ID'               => $this->mapStatusToStage($booking->status->slug),
@@ -366,7 +417,6 @@ class Bitrix24Adapter
 			'checked_in'  => 'EXECUTING',   // заселён — "в работе"
 			'checked_out' => 'WON',
 			'cancelled'   => 'LOSE',
-			'no_show'     => 'LOSE',
 		];
 	}
 

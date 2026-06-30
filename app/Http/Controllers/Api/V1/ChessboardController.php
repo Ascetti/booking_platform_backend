@@ -26,6 +26,8 @@ class ChessboardController extends Controller
             hotel: $hotel,
             dateFrom: Carbon::parse($data['date_from']),
             dateTo: Carbon::parse($data['date_to']),
+            search: $data['search'] ?? null,
+            statuses: $data['statuses'] ?? [],
         );
 
         return response()->json([

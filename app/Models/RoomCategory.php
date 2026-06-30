@@ -70,14 +70,12 @@ class RoomCategory extends Model
         return $this->hasMany(Booking::class, 'room_category_id');
     }
 
-    public function canAccommodate(int $adults, int $children): bool
+    public function canAccommodate(int $adults, int $children, int $childrenWithoutPlace = 1): bool
     {
         // Считаем сколько мест занимают гости
-        // Каждые 2 ребёнка = 1 место, округляем вниз
-        $occupiedPlaces = $adults + (int) floor($children / 2);
-        // Максимум мест = базовая вместимость + дополнительная
+        $childrenWithPlace = max(0, $children - $childrenWithoutPlace);
+        $occupiedPlaces = $adults + $childrenWithPlace;
         $maxPlaces = $this->base_capacity + $this->extra_capacity;
-
         return $occupiedPlaces <= $maxPlaces;
     }
 
@@ -106,10 +104,12 @@ class RoomCategory extends Model
             ->when($excludeBookingId, fn($q) => $q->where('id', '!=', $excludeBookingId))
             ->get();
 
+        // номера назначены
         $assignedCount = $overlappingBookings
             ->whereNotNull('room_id')
             ->count();
 
+        // номера не назначены
         $unassignedCount = $overlappingBookings
             ->whereNull('room_id')
             ->count();
@@ -125,11 +125,13 @@ class RoomCategory extends Model
         return $this->getAvailableRoomsCount($checkIn, $checkOut, $excludeBookingId) > 0;
     }
 
-    public function getTotalRooms() {
+    public function getTotalRooms()
+    {
         return $this->rooms()->count();
     }
 
-    public function getTotalActiveRooms() {
+    public function getTotalActiveRooms()
+    {
         return $this->rooms()
             ->where('is_active', true)
             ->count();

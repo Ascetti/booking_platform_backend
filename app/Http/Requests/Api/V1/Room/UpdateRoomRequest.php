@@ -34,6 +34,7 @@ class UpdateRoomRequest extends FormRequest
                     ->where(fn($query) => $query->where('room_category_id', $room->room_category_id))
                     ->ignore($room->id),
             ],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }

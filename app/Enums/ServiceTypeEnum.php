@@ -15,9 +15,9 @@ enum ServiceTypeEnum: string
         return match ($this) {
             self::PER_STAY => 'единоразово',
             self::PER_SERVICE => 'за услугу',
-            self::PER_NIGHT => 'за ночь',
-            self::PER_PERSON => 'за человека',
-            self::PER_PERSON_PER_NIGHT => 'за ночь за человека',
+            self::PER_NIGHT => 'за сутки',
+            self::PER_PERSON => 'за гостя',
+            self::PER_PERSON_PER_NIGHT => 'за гостя в сутки',
         };
     }
 

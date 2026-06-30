@@ -35,7 +35,7 @@ class UpdateRoomCategoryRequest extends FormRequest
                     ->ignore($roomCategory->id),
             ],
             'area' => ['sometimes', 'required', 'integer', 'min:1'],
-            'description' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'description' => ['sometimes', 'nullable', 'string'],
             'base_capacity' => ['sometimes', 'required', 'integer', 'min:1'],
             'extra_capacity' => ['sometimes', 'required', 'integer', 'min:0'],
             'bedding_options' => ['sometimes', 'required', 'string', 'max:255'],

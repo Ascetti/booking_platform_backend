@@ -12,10 +12,10 @@ enum DocumentTypeEnum: string
     public function label(): string
     {
         return match($this) {
-            self::PASSPORT => 'passport',
-            self::INTERNATIONAL_PASSPORT => 'international_passport',
-            self::BIRTH_CERTIFICATE => 'birth_certificate',
-            self::DRIVING_LICENSE => 'driving_license',
+            self::PASSPORT => 'Паспорт',
+            self::INTERNATIONAL_PASSPORT => 'Загранпаспорт',
+            self::BIRTH_CERTIFICATE => 'Свидетельство о рождении',
+            self::DRIVING_LICENSE => 'Водительское удостоверение',
         };
     }
 }

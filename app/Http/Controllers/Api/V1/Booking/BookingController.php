@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Booking;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Booking\GetBookingsRequest;
 use App\Http\Requests\Api\V1\Booking\StoreBookingRequest;
 use App\Http\Resources\Api\V1\BookingResource;
 use App\Models\Booking;
@@ -17,50 +18,46 @@ class BookingController extends Controller
         protected ReservationService $reservationService
     ) {}
 
-    public function index(Request $request, Hotel $hotel)
+    public function index(GetBookingsRequest $request, Hotel $hotel)
     {
         Gate::authorize('viewAny', [Booking::class, $hotel]);
 
+        $data  = $request->validated();
         $query = $hotel->bookings()
             ->with(['status', 'category', 'room', 'plan', 'guests'])
             ->orderBy('id', 'desc');
 
-        // Поиск по номеру брони, имени, фамилии, телефону, email гостя
-        if ($request->filled('search')) {
-            $search = $request->input('search');
+        if (!empty($data['search'])) {
+            $search = $data['search'];
             $query->where(function ($q) use ($search) {
-                // По номеру бронирования
                 if (is_numeric($search)) {
                     $q->where('id', (int) $search);
                 }
-                // По данным гостя
                 $q->orWhereHas('guests', function ($gq) use ($search) {
-                    $gq->where('booking_guest.first_name', 'ilike', "%{$search}%")
-                        ->orWhere('booking_guest.last_name', 'ilike', "%{$search}%")
-                        ->orWhere('booking_guest.phone', 'ilike', "%{$search}%")
-                        ->orWhere('booking_guest.email', 'ilike', "%{$search}%");
+                    $gq->where('guests.first_name', 'ilike', "%{$search}%")
+                        ->orWhere('guests.last_name', 'ilike', "%{$search}%")
+                        ->orWhere('guests.phone', 'ilike', "%{$search}%")
+                        ->orWhere('guests.email', 'ilike', "%{$search}%");
                 });
             });
         }
 
-        // Фильтр по статусу
-        if ($request->filled('status')) {
+        if (!empty($data['statuses'])) {
             $query->whereHas(
                 'status',
-                fn($q) =>
-                $q->where('slug', $request->input('status'))
+                fn($q) => $q->whereIn('slug', $data['statuses'])
             );
         }
 
-        // Фильтр по датам — бронирования пересекающиеся с периодом
-        if ($request->filled('date_from')) {
-            $query->where('check_out_date', '>', $request->input('date_from'));
-        }
-        if ($request->filled('date_to')) {
-            $query->where('check_in_date', '<', $request->input('date_to'));
+        if (!empty($data['date_from'])) {
+            $query->where('check_out_date', '>', $data['date_from']);
         }
 
-        $bookings = $query->paginate($request->input('per_page', 6));
+        if (!empty($data['date_to'])) {
+            $query->where('check_in_date', '<', $data['date_to']);
+        }
+
+        $bookings = $query->paginate($data['per_page'] ?? 6);
 
         return BookingResource::collection($bookings);
     }

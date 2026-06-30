@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\V1\Booking;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateBookingStayDetailsRequest extends FormRequest
 {
@@ -24,6 +25,16 @@ class UpdateBookingStayDetailsRequest extends FormRequest
                 Rule::exists('room_categories', 'id')
                     ->where('hotel_id', $hotelId),
             ],
+            'room_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('rooms', 'id')
+                    ->where('room_category_id', $this->input(
+                        'room_category_id',
+                        $booking->room_category_id
+                    )),
+            ],
             'rate_plan_id' => [
                 'sometimes',
                 'integer',
@@ -35,7 +46,24 @@ class UpdateBookingStayDetailsRequest extends FormRequest
             'check_out_date' => ['sometimes', 'date', 'after:check_in_date'],
             'adults_count'   => ['sometimes', 'integer', 'min:1', 'max:10'],
             'children_count' => ['sometimes', 'integer', 'min:0', 'max:10'],
-            'comment'        => ['sometimes', 'nullable', 'string', 'max:1000'],
+        ];
+    }
+
+    public function after(): array
+    {
+        return [
+            function (Validator $validator) {
+                $booking  = $this->route('booking');
+                $checkIn  = $this->input('check_in_date', $booking->check_in_date);
+                $checkOut = $this->input('check_out_date', $booking->check_out_date);
+
+                if ($checkOut <= $checkIn) {
+                    $validator->errors()->add(
+                        'check_out_date',
+                        'Check-out date must be after check-in date.'
+                    );
+                }
+            }
         ];
     }
 }

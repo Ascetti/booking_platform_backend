@@ -48,7 +48,7 @@ class HotelIntegrationController extends Controller
 
         $message = $settings['pipeline_id']
             ? 'Integration connected and configured successfully.'
-            : 'Integration connected. Custom pipeline is unavailable on your Bitrix24 plan — using default pipeline and stages.';
+            : 'Integration connected. Custom pipeline is not configured using default pipeline and stages.';
 
         return response()->json([
             'message' => $message,

@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\AvailabilityController;
 use App\Http\Controllers\Api\V1\Booking\BookingAvailableRoomsController;
 use App\Http\Controllers\Api\V1\Booking\BookingController;
 use App\Http\Controllers\Api\V1\Booking\BookingGuestsController;
+use App\Http\Controllers\Api\V1\Booking\BookingExtraController;
 use App\Http\Controllers\Api\V1\Booking\BookingRoomController;
 use App\Http\Controllers\Api\V1\Booking\BookingServicesController;
 use App\Http\Controllers\Api\V1\Booking\BookingStayDetailsController;
@@ -37,6 +38,7 @@ use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\Webhooks\BitrixWebhookController;
 use App\Http\Middleware\EnsureUserHasAccessToHotelData;
 use App\Http\Middleware\EnsureUserHasAccessToPlatformData;
+use App\Http\Middleware\PublicCors;
 use App\Http\Resources\Api\v1\CurrentUserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -58,17 +60,17 @@ Route::post('v1/webhooks/bitrix24', [BitrixWebhookController::class, 'handle'])-
 Route::post('/login', [AuthenticatedApiController::class, 'store'])->middleware('guest')->name('login');
 Route::post('/logout', [AuthenticatedApiController::class, 'destroy'])->middleware('auth:sanctum')->name('logout');
 
-Route::prefix('v1/public')->name('public.')->middleware('throttle:60,1')->group(function () {
+Route::prefix('v1/public')->name('public.')->middleware(['throttle:60,1', PublicCors::class])->group(function () {
     Route::get('hotels/{hotel}', [PublicHotelController::class, 'show'])
-        ->name('public.hotels.show');
+        ->name('hotels.show');
     Route::get('hotels/{hotel}/prices', [PublicPriceController::class, 'index'])
-        ->name('public.hotels.prices');
+        ->name('hotels.prices');
     Route::get('hotels/{hotel}/availability', [PublicAvailabilityController::class, 'index'])
-        ->name('public.hotels.availability');
+        ->name('hotels.availability');
     Route::get('hotels/{hotel}/services', [PublicServiceController::class, 'index'])
-        ->name('public.hotels.services');
+        ->name('hotels.services');
     Route::post('hotels/{hotel}/bookings', [PublicBookingController::class, 'store'])
-        ->name('public.hotels.bookings.store');
+        ->name('hotels.bookings.store');
 });
 
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
@@ -134,6 +136,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::put('bookings/{booking}/guests', [BookingGuestsController::class, 'update'])->name('bookings.guests.update');
         Route::put('bookings/{booking}/services', [BookingServicesController::class, 'update'])->name('bookings.services.update');
         Route::get('bookings/{booking}/available-rooms', [BookingAvailableRoomsController::class, 'index'])->name('bookings.available-rooms');
+        Route::patch('bookings/{booking}/extra', [BookingExtraController::class, 'update'])->name('bookings.extra.update');
 
         Route::get('hotels/{hotel}/guests', [GuestController::class, 'index'])->name('hotels.guests.index');
         Route::get('guests/{guest}', [GuestController::class, 'show'])->name('guests.show');

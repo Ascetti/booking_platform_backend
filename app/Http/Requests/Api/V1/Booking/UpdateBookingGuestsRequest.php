@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Api\V1\Booking;
 
+use App\Enums\DocumentTypeEnum;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class UpdateBookingGuestsRequest extends FormRequest
@@ -14,10 +16,18 @@ class UpdateBookingGuestsRequest extends FormRequest
 
     public function rules(): array
     {
+        $hotelId = $this->route('booking')->hotel_id;
+
         return [
             'guests'               => ['required', 'array', 'min:1'],
+            'guests.*.id'          => ['nullable', 'integer', Rule::exists('guests', 'id')
+                ->where('hotel_id', $hotelId)],
             'guests.*.first_name'  => ['required', 'string', 'max:255'],
             'guests.*.last_name'   => ['required', 'string', 'max:255'],
+            'guests.*.middle_name' => ['nullable', 'string', 'max:255'],
+            'guests.*.birth_date'  => ['nullable', 'date', 'before:today'],
+            'guests.*.document_type'   => ['nullable', Rule::enum(DocumentTypeEnum::class)],
+            'guests.*.document_number' => ['nullable', 'string', 'max:50'],
             'guests.*.email'       => ['nullable', 'email'],
             'guests.*.phone'       => ['nullable', 'string'],
             'guests.*.is_primary'  => ['required', 'boolean'],
@@ -28,12 +38,11 @@ class UpdateBookingGuestsRequest extends FormRequest
     {
         return [
             function (Validator $validator) {
-                $guests = $this->input('guests', []);
+                $guests  = $this->input('guests', []);
                 $booking = $this->route('booking');
 
-                $primaryGuests = collect($guests)
-                    ->filter(fn($g) => !empty($g['is_primary']));
-
+                // Ровно один заказчик
+                $primaryGuests = collect($guests)->filter(fn($g) => !empty($g['is_primary']));
                 if ($primaryGuests->count() !== 1) {
                     $validator->errors()->add(
                         'guests',
@@ -50,7 +59,7 @@ class UpdateBookingGuestsRequest extends FormRequest
                     );
                 }
 
-                // Проверяем что количество гостей не превышает состав бронирования
+                // Количество гостей не превышает состав бронирования
                 $maxGuests = $booking->adults_count + $booking->children_count;
                 if (count($guests) > $maxGuests) {
                     $validator->errors()->add(

@@ -47,7 +47,7 @@ class HotelSeeder extends Seeder
                 );
 
                  $floor = rand(1, 5);
-                for ($i = 1; $i <= 14; $i++) {
+                for ($i = 1; $i <= 5; $i++) {
                     if ($i < 10) {
                         Room::factory()
                         ->create([

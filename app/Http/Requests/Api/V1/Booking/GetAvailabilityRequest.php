@@ -1,13 +1,12 @@
 <?php
 
-namespace App\Http\Requests\Api\V1;
+namespace App\Http\Requests\Api\V1\Booking;
 
-use App\Enums\BookingStatusEnum;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class GetChessboardRequest extends FormRequest
+class GetAvailabilityRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,11 +24,11 @@ class GetChessboardRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'date_from'  => ['required', 'date'],
-            'date_to'    => ['required', 'date', 'after:date_from'],
-            'search'     => ['sometimes', 'string', 'max:255'],
-            'statuses'   => ['sometimes', 'array'],
-            'statuses.*' => ['string', Rule::enum(BookingStatusEnum::class)],
+            'check_in_date'  => ['required', 'date', 'after_or_equal:today'],
+            'check_out_date' => ['required', 'date', 'after:check_in_date'],
+            'adults_count'   => ['required', 'integer', 'min:1', 'max:10'],
+            'children_count' => ['required', 'integer', 'min:0', 'max:10'],
+            'exclude_booking_id' => ['sometimes', 'integer', Rule::exists('bookings', 'id')],
         ];
     }
 }

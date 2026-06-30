@@ -9,29 +9,26 @@ enum BookingStatusEnum: string
     case CHECKED_IN = 'checked_in';
     case CHECKED_OUT = 'checked_out';
     case CANCELLED = 'cancelled';
-    case NO_SHOW = 'no_show';
 
     public function label(): string
     {
-        return match($this) {
-            self::NEW => 'new',
-            self::CONFIRMED => 'confirmed',
-            self::CHECKED_IN => 'checked in',
-            self::CHECKED_OUT => 'checked out',
-            self::CANCELLED => 'cancelled',
-            self::NO_SHOW => 'no show',
+        return match ($this) {
+            self::NEW => 'Новое',
+            self::CONFIRMED => 'Подтверждено',
+            self::CHECKED_IN => 'Заселен',
+            self::CHECKED_OUT => 'Выселен',
+            self::CANCELLED => 'Отменено',
         };
     }
 
     public function allowedTransitions(): array
     {
-        return match($this) {
+        return match ($this) {
             self::NEW        => [self::CONFIRMED, self::CANCELLED],
-            self::CONFIRMED  => [self::CHECKED_IN, self::CANCELLED, self::NO_SHOW],
-            self::CHECKED_IN => [self::CHECKED_OUT],
+            self::CONFIRMED  => [self::CHECKED_IN, self::CANCELLED],
+            self::CHECKED_IN => [self::CHECKED_OUT, self::CONFIRMED],
             self::CHECKED_OUT => [],
-            self::CANCELLED  => [],
-            self::NO_SHOW    => [],
+            self::CANCELLED => [self::NEW],
         };
     }
 

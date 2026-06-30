@@ -186,18 +186,17 @@ class PricingService
      * Считает стоимость одной услуги с учётом типа цены.
      */
     public function calculateServicePrice(
-        Service $service,
+        ServiceTypeEnum $priceType,
+        float $unitPrice,       // price_at_booking или $service->price
         int $quantity,
         int $nights
     ): float {
-        $basePrice = (float) $service->price;
-
-        $total = match ($service->price_type) {
-            ServiceTypeEnum::PER_STAY             => $basePrice,
-            ServiceTypeEnum::PER_SERVICE          => $basePrice * $quantity,
-            ServiceTypeEnum::PER_NIGHT            => $basePrice * $quantity * $nights,
-            ServiceTypeEnum::PER_PERSON           => $basePrice * $quantity,
-            ServiceTypeEnum::PER_PERSON_PER_NIGHT => $basePrice * $quantity * $nights,
+        $total = match ($priceType) {
+            ServiceTypeEnum::PER_STAY             => $unitPrice,
+            ServiceTypeEnum::PER_SERVICE          => $unitPrice * $quantity,
+            ServiceTypeEnum::PER_NIGHT            => $unitPrice * $quantity * $nights,
+            ServiceTypeEnum::PER_PERSON           => $unitPrice * $quantity,
+            ServiceTypeEnum::PER_PERSON_PER_NIGHT => $unitPrice * $quantity * $nights,
         };
 
         return round($total, 2);
@@ -223,7 +222,8 @@ class PricingService
         $servicesTotal = 0.0;
         foreach ($services as $item) {
             $servicesTotal += $this->calculateServicePrice(
-                $item['service'],
+                $item['service']->price_type,
+                (float) $item['service']->price,
                 $item['quantity'],
                 $nights,
             );
@@ -238,82 +238,99 @@ class PricingService
      */
     public function getRateGrid(RatePlan $ratePlan, Carbon $dateFrom, Carbon $dateTo): array
     {
-        // Для дочернего тарифа берём цены родителя
         $sourcePlan = $ratePlan->parent_id
             ? $ratePlan->parent()->first()
             : $ratePlan;
 
-        // Берём все категории отеля
         $categories = RoomCategory::where('hotel_id', $ratePlan->hotel_id)->get();
 
-        // Строим список дат периода
-        $period = CarbonPeriod::create($dateFrom, $dateTo);
         $dates = [];
-        foreach ($period as $date) {
+        foreach (CarbonPeriod::create($dateFrom, $dateTo) as $date) {
             $dates[] = $date->toDateString();
         }
 
-        // Загружаем базовые цены за период одним запросом
+        $modifier = ($ratePlan->parent_id && $ratePlan->modifier_percent !== null)
+            ? (1 + $ratePlan->modifier_percent / 100)
+            : 1;
+
+        // Базовые цены родителя
         $basePrices = RatePrice::where('rate_plan_id', $sourcePlan->id)
             ->whereBetween('date', [$dateFrom->toDateString(), $dateTo->toDateString()])
             ->get()
             ->groupBy('room_category_id')
             ->map(fn($prices) => $prices->keyBy(fn($p) => $p->date->format('Y-m-d')));
 
-        // Загружаем переопределения за период одним запросом
-        $overrides = RateOverride::where('rate_plan_id', $sourcePlan->id)
+        // Переопределения родителя — для расчёта цены
+        $parentOverrides = RateOverride::where('rate_plan_id', $sourcePlan->id)
             ->whereBetween('date', [$dateFrom->toDateString(), $dateTo->toDateString()])
             ->get()
             ->groupBy('room_category_id')
             ->map(fn($items) => $items->keyBy(fn($i) => $i->date->format('Y-m-d')));
 
-        // Модификатор для дочернего тарифа
-        $modifier = ($ratePlan->parent_id && $ratePlan->modifier_percent !== null)
-            ? (1 + $ratePlan->modifier_percent / 100)
-            : 1;
+        // Свои переопределения тарифа — для отображения флагов
+        $ownOverrides = collect();
+        if ($ratePlan->parent_id) {
+            $ownOverrides = RateOverride::where('rate_plan_id', $ratePlan->id)
+                ->whereBetween('date', [$dateFrom->toDateString(), $dateTo->toDateString()])
+                ->get()
+                ->groupBy('room_category_id')
+                ->map(fn($items) => $items->keyBy(fn($i) => $i->date->format('Y-m-d')));
+        } else {
+            $ownOverrides = $parentOverrides;
+        }
 
         $result = [];
 
         foreach ($categories as $category) {
-            $categoryBasePrices = $basePrices->get($category->id, collect());
-
-            // dd([
-            //     'raw_key'    => $categoryBasePrices->keys()->first(),
-            //     'raw_value'  => $categoryBasePrices->first(),
-            //     'date_field' => $categoryBasePrices->first()?->date,
-            //     'date_type'  => gettype($categoryBasePrices->first()?->date),
-            // ]);
-            $categoryOverrides  = $overrides->get($category->id, collect());
+            $categoryBasePrices    = $basePrices->get($category->id, collect());
+            $categoryParentOverrides = $parentOverrides->get($category->id, collect());
+            $categoryOwnOverrides  = $ownOverrides->get($category->id, collect());
 
             $days = [];
 
             foreach ($dates as $date) {
                 $baseRecord     = $categoryBasePrices->get($date);
-                $overrideRecord = $categoryOverrides->get($date);
+                $parentOverride = $categoryParentOverrides->get($date);
+                $ownOverride    = $categoryOwnOverrides->get($date);
 
-                // Базовая цена с учётом модификатора дочернего тарифа
+                // Базовая цена с модификатором
                 $basePrice = $baseRecord
                     ? (float) round($baseRecord->price * $modifier, 2)
                     : null;
 
-                // Цена переопределения с учётом модификатора
-                $overridePrice = ($overrideRecord && $overrideRecord->override_price !== null)
-                    ? (float) round($overrideRecord->override_price * $modifier, 2)
+                // Считаем effective_price по приоритетам
+                if ($ownOverride && $ownOverride->is_closed) {
+                    $effectivePrice = $ownOverride->override_price !== null
+                        ? (float) $ownOverride->override_price
+                        : ($parentOverride && $parentOverride->override_price !== null
+                            ? (float) round($parentOverride->override_price * $modifier, 2)
+                            : $basePrice);
+                } elseif ($ownOverride && $ownOverride->override_price !== null) {
+                    $effectivePrice = (float) $ownOverride->override_price;
+                } elseif ($parentOverride && $parentOverride->override_price !== null) {
+                    $effectivePrice = (float) round($parentOverride->override_price * $modifier, 2);
+                } else {
+                    $effectivePrice = $basePrice;
+                }
+
+                // Флаги — только свои переопределения
+                $isClosed       = $ownOverride ? (bool) $ownOverride->is_closed : false;
+                $isPriceOverride = $ownOverride && $ownOverride->override_price !== null;
+                $isOverride     = $ownOverride && ($ownOverride->override_price !== null || $ownOverride->is_closed);
+
+                // override_price для отображения — своя цена переопределения
+                $overridePrice = $isPriceOverride
+                    ? (float) $ownOverride->override_price
                     : null;
 
-                $isClosed   = $overrideRecord ? (bool) $overrideRecord->is_closed : false;
-                $isOverride = $overrideRecord !== null;
-
-                // Итоговая цена — переопределение приоритетнее базовой
-                $effectivePrice = $overridePrice ?? $basePrice;
-
                 $days[] = [
-                    'date'           => $date,
-                    'base_price'     => $basePrice,
-                    'override_price' => $overridePrice,
-                    'effective_price' => $effectivePrice,
-                    'is_override'    => $isOverride,
-                    'is_closed'      => $isClosed,
+                    'date'              => $date,
+                    'base_price'        => $basePrice,
+                    'override_price'    => $overridePrice,
+                    'effective_price'   => $effectivePrice,
+                    'is_override'       => $isOverride,
+                    'is_price_override' => $isPriceOverride,
+                    'is_closed'         => $isClosed,
                 ];
             }
 
@@ -332,14 +349,18 @@ class PricingService
         $ratePlans  = RatePlan::where('hotel_id', $hotel->id)
             ->where('is_active', true)
             ->get();
-
         $categories = RoomCategory::where('hotel_id', $hotel->id)->get();
 
         $ratePlanIds  = $ratePlans->pluck('id');
         $categoryIds  = $categories->pluck('id');
 
-        // Загружаем все базовые цены за период одним запросом
-        $allPrices = RatePrice::whereIn('rate_plan_id', $ratePlanIds)
+        // Базовые цены — только родительских тарифов
+        $parentPlanIds = $ratePlans->pluck('parent_id')
+            ->filter()
+            ->merge($ratePlans->whereNull('parent_id')->pluck('id'))
+            ->unique();
+
+        $allPrices = RatePrice::whereIn('rate_plan_id', $parentPlanIds)
             ->whereIn('room_category_id', $categoryIds)
             ->whereBetween('date', [$dateFrom->toDateString(), $dateTo->toDateString()])
             ->get()
@@ -347,7 +368,7 @@ class PricingService
             ->map(fn($byDate) => $byDate->groupBy('rate_plan_id')
                 ->map(fn($byPlan) => $byPlan->keyBy('room_category_id')));
 
-        // Загружаем все переопределения за период одним запросом
+        // Переопределения всех тарифов
         $allOverrides = RateOverride::whereIn('rate_plan_id', $ratePlanIds)
             ->whereIn('room_category_id', $categoryIds)
             ->whereBetween('date', [$dateFrom->toDateString(), $dateTo->toDateString()])
@@ -356,43 +377,67 @@ class PricingService
             ->map(fn($byDate) => $byDate->groupBy('rate_plan_id')
                 ->map(fn($byPlan) => $byPlan->keyBy('room_category_id')));
 
+        // Переопределения родителей отдельно для расчёта цены дочерних
+        $parentOverrides = RateOverride::whereIn('rate_plan_id', $parentPlanIds)
+            ->whereIn('room_category_id', $categoryIds)
+            ->whereBetween('date', [$dateFrom->toDateString(), $dateTo->toDateString()])
+            ->get()
+            ->groupBy(fn($o) => $o->date->format('Y-m-d'))
+            ->map(fn($byDate) => $byDate->groupBy('rate_plan_id')
+                ->map(fn($byPlan) => $byPlan->keyBy('room_category_id')));
+
         $result = [];
-        $period = CarbonPeriod::create($dateFrom, $dateTo);
+        $period  = CarbonPeriod::create($dateFrom, $dateTo);
 
         foreach ($period as $date) {
-            $dateStr  = $date->toDateString();
-            $minPrice = null;
-
-            $datePrices    = $allPrices->get($dateStr, collect());
-            $dateOverrides = $allOverrides->get($dateStr, collect());
+            $dateStr          = $date->toDateString();
+            $minPrice         = null;
+            $datePrices       = $allPrices->get($dateStr, collect());
+            $dateOverrides    = $allOverrides->get($dateStr, collect());
+            $dateParentOverrides = $parentOverrides->get($dateStr, collect());
 
             foreach ($ratePlans as $plan) {
-                // Для дочернего тарифа берём цены родителя
                 $sourcePlanId = $plan->parent_id ?? $plan->id;
+                $modifier     = ($plan->parent_id && $plan->modifier_percent !== null)
+                    ? (1 + $plan->modifier_percent / 100)
+                    : 1;
 
                 foreach ($categories as $category) {
-                    // Проверяем переопределение
-                    $override = $dateOverrides->get($sourcePlanId)?->get($category->id);
+                    // Своё переопределение тарифа
+                    $ownOverride = $dateOverrides->get($plan->id)?->get($category->id);
 
-                    if ($override && $override->is_closed) {
+                    // Своё закрытие — пропускаем
+                    if ($ownOverride && $ownOverride->is_closed) {
                         continue;
                     }
 
-                    if ($override && $override->override_price !== null) {
-                        $price = (float) $override->override_price;
-                    } else {
-                        $basePrice = $datePrices->get($sourcePlanId)?->get($category->id);
-                        if (!$basePrice) {
-                            continue;
+                    // Своя фиксированная цена — наивысший приоритет
+                    if ($ownOverride && $ownOverride->override_price !== null) {
+                        $price = (float) $ownOverride->override_price;
+                        if ($minPrice === null || $price < $minPrice) {
+                            $minPrice = $price;
                         }
-                        $price = (float) $basePrice->price;
+                        continue;
                     }
 
-                    // Применяем модификатор дочернего тарифа
-                    if ($plan->parent_id && $plan->modifier_percent !== null) {
-                        $price = round($price * (1 + $plan->modifier_percent / 100), 2);
+                    // Переопределение родителя — только цена, закрытие игнорируем
+                    $parentOverride = $dateParentOverrides->get($sourcePlanId)?->get($category->id);
+
+                    if ($parentOverride && $parentOverride->override_price !== null) {
+                        $price = (float) round($parentOverride->override_price * $modifier, 2);
+                        if ($minPrice === null || $price < $minPrice) {
+                            $minPrice = $price;
+                        }
+                        continue;
                     }
 
+                    // Базовая цена родителя + модификатор
+                    $baseRecord = $datePrices->get($sourcePlanId)?->get($category->id);
+                    if (!$baseRecord) {
+                        continue;
+                    }
+
+                    $price = (float) round($baseRecord->price * $modifier, 2);
                     if ($minPrice === null || $price < $minPrice) {
                         $minPrice = $price;
                     }

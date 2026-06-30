@@ -25,7 +25,7 @@ class RoomController extends Controller
     public function index(RoomCategory $roomCategory)
     {
         Gate::authorize('viewAny', [Room::class, $roomCategory]);
-        $rooms = $roomCategory->rooms()->paginate(20);
+        $rooms = $roomCategory->rooms()->orderBy('name', 'asc')->paginate(20);
         return RoomResource::collection($rooms);
     }
 

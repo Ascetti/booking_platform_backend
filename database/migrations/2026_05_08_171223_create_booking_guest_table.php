@@ -16,8 +16,8 @@ return new class extends Migration
             $table->foreignId('booking_id')->constrained()->cascadeOnDelete();
             $table->foreignId('guest_id')->constrained()->cascadeOnDelete();
             $table->boolean('is_primary')->default(false);
-            $table->string('first_name');
-            $table->string('last_name');
+            $table->string('first_name')->nullable();
+            $table->string('last_name')->nullable();
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
             $table->unique(['booking_id', 'guest_id']);

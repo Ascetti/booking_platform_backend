@@ -106,38 +106,50 @@ class RatePlan extends Model
 
     public function getPriceForDate(RoomCategory $category, Carbon $date): ?float
     {
-        // Для дочернего тарифа берём цены родителя
         $sourcePlanId = $this->parent_id ?? $this->id;
 
-        // Сначала смотрим переопределение
-        $override = RateOverride::where('rate_plan_id', $sourcePlanId)
+        // Своё переопределение — наивысший приоритет
+        if ($this->parent_id) {
+            $childOverride = RateOverride::where('rate_plan_id', $this->id)
+                ->where('room_category_id', $category->id)
+                ->where('date', $date->toDateString())
+                ->first();
+
+            if ($childOverride && $childOverride->is_closed) {
+                return null;
+            }
+
+            if ($childOverride && $childOverride->override_price !== null) {
+                return (float) $childOverride->override_price;
+            }
+        }
+
+        // Переопределение родителя — цена с модификатором, закрытие игнорируем
+        $parentOverride = RateOverride::where('rate_plan_id', $sourcePlanId)
             ->where('room_category_id', $category->id)
             ->where('date', $date->toDateString())
             ->first();
 
-        // Если дата закрыта — цены нет
-        if ($override && $override->is_closed) {
+        if ($parentOverride && $parentOverride->override_price !== null) {
+            $price = (float) $parentOverride->override_price;
+            if ($this->parent_id && $this->modifier_percent !== null) {
+                $price = round($price * (1 + $this->modifier_percent / 100), 2);
+            }
+            return $price;
+        }
+
+        // Базовая цена родителя + модификатор
+        $basePrice = RatePrice::where('rate_plan_id', $sourcePlanId)
+            ->where('room_category_id', $category->id)
+            ->where('date', $date->toDateString())
+            ->value('price');
+
+        if ($basePrice === null) {
             return null;
         }
 
-        // Если есть переопределение цены — берём его
-        if ($override && $override->override_price !== null) {
-            $price = (float) $override->override_price;
-        } else {
-            // Иначе берём базовую цену
-            $basePrice = RatePrice::where('rate_plan_id', $sourcePlanId)
-                ->where('room_category_id', $category->id)
-                ->where('date', $date->toDateString())
-                ->value('price');
+        $price = (float) $basePrice;
 
-            if ($basePrice === null) {
-                return null; // цены нет вообще
-            }
-
-            $price = (float) $basePrice;
-        }
-
-        // Если тариф дочерний — применяем модификатор
         if ($this->parent_id && $this->modifier_percent !== null) {
             $price = round($price * (1 + $this->modifier_percent / 100), 2);
         }

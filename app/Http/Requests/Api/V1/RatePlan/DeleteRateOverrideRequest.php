@@ -23,7 +23,10 @@ class DeleteRateOverrideRequest extends FormRequest
      */
     public function rules(): array
     {
-        $validCategoryIds = \App\Models\RatePrice::where('rate_plan_id', $this->route('rate_plan')->id)
+        $ratePlan = $this->route('rate_plan');
+        $sourcePlanId = $ratePlan->parent_id ?? $ratePlan->id;
+
+        $validCategoryIds = \App\Models\RatePrice::where('rate_plan_id', $sourcePlanId)
             ->distinct()
             ->pluck('room_category_id')
             ->toArray();

@@ -31,15 +31,18 @@ class BookingResource extends JsonResource
 
             'comment' => $this->comment,
 
-            // Гости — данные из снимка (pivot), не из профиля гостя
             'guests' => $this->whenLoaded('guests', function () {
                 return $this->guests->map(fn($guest) => [
-                    'id'         => $guest->id,
-                    'is_primary' => (bool) $guest->pivot->is_primary,
-                    'first_name' => $guest->pivot->first_name,
-                    'last_name'  => $guest->pivot->last_name,
-                    'email'      => $guest->pivot->email,
-                    'phone'      => $guest->pivot->phone,
+                    'id'              => $guest->id,
+                    'is_primary'      => (bool) $guest->pivot->is_primary,
+                    'first_name'      => $guest->first_name,
+                    'last_name'       => $guest->last_name,
+                    'middle_name'     => $guest->middle_name,
+                    'birth_date'      => $guest->birth_date?->format('Y-m-d'),
+                    'document_type'   => $guest->document_type,
+                    'document_number' => $guest->document_number,
+                    'email'           => $guest->email,
+                    'phone'           => $guest->phone,
                 ]);
             }),
 

@@ -8,6 +8,7 @@ use App\Models\BookingIntegration;
 use App\Models\HotelIntegration;
 use App\Models\IntegrationLog;
 use App\Services\Reservation\ReservationService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class IntegrationService
@@ -172,6 +173,20 @@ class IntegrationService
 			$adapter->updateDeal($dealId, $booking);
 
 			return;
+		}
+
+		if ($targetStatus === BookingStatusEnum::CHECKED_IN) {
+			if (!$booking->room_id) {
+				$adapter->updateDeal($dealId, $booking);
+				return;
+			}
+
+			$today = now()->startOfDay();
+			$checkInDate = Carbon::parse($booking->check_in_date)->startOfDay();
+			if ($checkInDate->gt($today)) {
+				$adapter->updateDeal($dealId, $booking);
+				return;
+			}
 		}
 
 		$this->reservationService->applyExternalStatusChange($booking, $targetStatus);
